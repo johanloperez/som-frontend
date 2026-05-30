@@ -54,6 +54,12 @@ export default function ProductsPage() {
   const [stockForm, setStockForm] = useState({ quantity: 0, reservedQuantity: 0, minStock: 0 });
   const [error, setError] = useState("");
   const [exportMsg, setExportMsg] = useState("");
+  const [exportJobs, setExportJobs] = useState<{ id: string; status: string; fileSizeBytes?: number; createdAt: string }[]>([]);
+
+  const [importModal, setImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importResult, setImportResult] = useState<{ created: number; errors: number; errorList: string[] } | null>(null);
+  const [importError, setImportError] = useState("");
 
   const [catModal, setCatModal] = useState(false);
   const [catForm, setCatForm] = useState({ name: "", defaultMinStock: 5 });
@@ -118,9 +124,41 @@ export default function ProductsPage() {
     try {
       await api.post(`${basePath}/export`, { format: "csv", type: "stock" });
       setExportMsg("Exportación iniciada.");
+      setTimeout(async () => {
+        try { const r = await api.get(`${basePath}/export`); setExportJobs(r.data); } catch {}
+      }, 2000);
     } catch (e: any) {
       setExportMsg(e?.response?.data?.error ?? e?.message ?? "Error al iniciar exportación.");
     }
+  };
+
+  const downloadTemplate = async () => {
+    try {
+      const res = await api.get(`${basePath}/import/template`, { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "template_productos.csv");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {}
+  };
+
+  const handleImport = async () => {
+    if (!importFile) return;
+    setImportError("");
+    setImportResult(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", importFile);
+      const res = await api.post(`${basePath}/import/products`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setImportResult(res.data);
+      setImportFile(null);
+      load();
+    } catch (e: any) { setImportError(e?.response?.data?.error ?? "Error al importar"); }
   };
 
   const saveCategory = async () => {
@@ -220,10 +258,12 @@ export default function ProductsPage() {
         <h2 className="text-3xl font-bold">Productos</h2>
         <div className="flex gap-2">
           <Button variant="outline" onClick={openCatCreate}>Categorías</Button>
+          <Button variant="outline" onClick={downloadTemplate}>Template</Button>
+          <Button variant="outline" onClick={() => { setImportFile(null); setImportResult(null); setImportError(""); setImportModal(true); }}>Importar</Button>
           {reportsEnabled ? (
             <Button variant="outline" onClick={exportStock}>Exportar CSV</Button>
           ) : (
-            <Tooltip content="La exportación no está disponible en tu plan actual. Actualiza a un plan que incluya reportes.">
+            <Tooltip content="No disponible en tu plan actual.">
               <Button variant="outline" disabled>Exportar CSV</Button>
             </Tooltip>
           )}
@@ -360,6 +400,65 @@ export default function ProductsPage() {
           </div>
         </div>
       </Modal>
+
+      <Modal open={importModal} onClose={() => setImportModal(false)} title="Importar Productos" description="Sube un archivo CSV con los productos a importar. Descarga el template si no tienes uno.">
+        <div className="space-y-3">
+          <Button variant="outline" className="w-full" onClick={downloadTemplate}>Descargar Template CSV</Button>
+          <div>
+            <label className="text-sm font-medium mb-1 block">Archivo CSV</label>
+            <input type="file" accept=".csv" className="w-full border rounded-md px-3 py-2 text-sm" onChange={(e) => {
+              if (e.target.files?.[0]) setImportFile(e.target.files[0]);
+            }} />
+          </div>
+          {importResult && (
+            <div className={`rounded-md border p-3 ${importResult.errors === 0 ? "border-green-200 bg-green-50 dark:bg-green-950" : "border-yellow-200 bg-yellow-50 dark:bg-yellow-950"}`}>
+              <p className="text-sm font-medium">Resultado: {importResult.created} creados, {importResult.errors} errores</p>
+              {importResult.errorList.length > 0 && (
+                <div className="mt-2 text-xs space-y-0.5 max-h-32 overflow-y-auto">
+                  {importResult.errorList.map((e, i) => <p key={i} className="text-destructive">{e}</p>)}
+                </div>
+              )}
+            </div>
+          )}
+          {importError && <p className="text-sm text-destructive">{importError}</p>}
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setImportModal(false)}>Cancelar</Button>
+            <Button onClick={handleImport} disabled={!importFile}>Importar</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {exportJobs.length > 0 && (
+        <Modal open={true} onClose={() => setExportJobs([])} title="Exportaciones" description="Archivos generados listos para descargar.">
+          <div className="space-y-2">
+            {exportJobs.filter(j => j.status === "completed").map(j => (
+              <div key={j.id} className="flex items-center justify-between border rounded px-3 py-2">
+                <span className="text-sm">{new Date(j.createdAt).toLocaleString()} — {j.fileSizeBytes ? `${(j.fileSizeBytes / 1024).toFixed(1)} KB` : ""}</span>
+                <Button variant="outline" size="sm" onClick={async () => {
+                  try {
+                    const res = await api.get(`${basePath}/export/${j.id}/download`, { responseType: "blob" });
+                    const url = window.URL.createObjectURL(new Blob([res.data]));
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.setAttribute("download", `productos_${j.id.slice(0, 8)}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                  } catch {}
+                }}>Descargar</Button>
+              </div>
+            ))}
+            {exportJobs.filter(j => j.status !== "completed").map(j => (
+              <div key={j.id} className="flex items-center justify-between border rounded px-3 py-2">
+                <span className="text-sm text-muted-foreground">{new Date(j.createdAt).toLocaleString()} — {j.status}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2 justify-end mt-3">
+            <Button variant="outline" onClick={() => setExportJobs([])}>Cerrar</Button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

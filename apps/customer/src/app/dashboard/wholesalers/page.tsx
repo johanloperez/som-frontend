@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@repo/api";
-import { Card, CardHeader, CardTitle, CardContent, Button, Input, Modal, DataTable } from "@repo/ui";
+import { Card, CardContent, Button, Input, Modal, DataTable, Badge } from "@repo/ui";
 import type { ColumnDef } from "@tanstack/react-table";
 
 interface Wholesaler {
@@ -11,6 +11,7 @@ interface Wholesaler {
   displayName: string;
   legalName: string;
   featured: boolean;
+  status?: string;
 }
 
 export default function WholesalersPage() {
@@ -26,8 +27,19 @@ export default function WholesalersPage() {
   const load = async (q?: string) => {
     setLoading(true);
     try {
-      const res = await api.get("/directory/wholesalers", { params: { search: q || undefined } });
-      setWholesalers(res.data);
+      const [dirRes, assocRes] = await Promise.all([
+        api.get("/directory/wholesalers", { params: { search: q || undefined } }),
+        api.get("/associations/my").catch(() => ({ data: [] })),
+      ]);
+
+      const associations = assocRes.data as { tenantId: string; status: string }[];
+      const associatedIds = new Set(associations.map(a => a.tenantId));
+
+      const filtered = dirRes.data
+        .filter((w: Wholesaler) => !associatedIds.has(w.tenantId))
+        .map((w: Wholesaler) => ({ ...w, status: undefined }));
+
+      setWholesalers(filtered);
     } catch {}
     setLoading(false);
   };
@@ -47,6 +59,7 @@ export default function WholesalersPage() {
       setRequestModal(false);
       setMessage("");
       setError("");
+      load();
     } catch (e: any) {
       setError(e?.response?.data?.error ?? "Error al enviar solicitud");
     }
@@ -78,15 +91,11 @@ export default function WholesalersPage() {
         </div>
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
-          {wholesalers.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No se encontraron mayoristas.</p>
-          ) : (
-            <DataTable columns={columns} data={wholesalers} searchable={false} pagination={true} />
-          )}
-        </CardContent>
-      </Card>
+      {wholesalers.length === 0 ? (
+        <Card><CardContent className="py-8 text-center text-muted-foreground">No se encontraron mayoristas disponibles.</CardContent></Card>
+      ) : (
+        <DataTable columns={columns} data={wholesalers} searchable={false} pagination={true} />
+      )}
 
       <Modal open={requestModal} onClose={() => setRequestModal(false)} title="Solicitar Vinculación" description={`Envía una solicitud a ${selectedTenant?.displayName}.`}>
         <div className="space-y-3">

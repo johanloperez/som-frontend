@@ -59,7 +59,7 @@ export default function AssociationsPage() {
         tenantSlug: data.tenantSlug, portal: "wholesaler",
       }));
       sessionStorage.setItem("access_token", data.accessToken);
-      router.push("/dashboard/orders");
+      window.location.href = "/dashboard/orders";
     } catch {}
   };
 

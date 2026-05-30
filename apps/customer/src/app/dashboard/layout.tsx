@@ -17,15 +17,13 @@ function SidebarInner({ children }: { children: React.ReactNode }) {
   if (loading) return <div className="flex min-h-screen items-center justify-center"><p>Cargando...</p></div>;
   if (!user) return null;
 
-  const hasTenant = !!user.tenantSlug;
   const navItems = [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/dashboard/associations", label: "Mis Asociaciones" },
     { href: "/dashboard/wholesalers", label: "Mayoristas" },
-    ...(hasTenant ? [
-      { href: "/dashboard/orders", label: "Pedidos" },
-      { href: "/dashboard/orders/create", label: "Nuevo Pedido" },
-    ] : []),
+    { href: "/dashboard/orders", label: "Pedidos" },
+    { href: "/dashboard/profile", label: "Mi Perfil" },
+    { href: "/dashboard/change-password", label: "Contraseña" },
   ];
 
   return (

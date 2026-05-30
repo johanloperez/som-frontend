@@ -49,6 +49,9 @@ export default function TenantsPage() {
 
   useEffect(() => { load(); }, []);
 
+  const [statusFilter, setStatusFilter] = useState("active");
+  const filteredTenants = statusFilter ? tenants.filter(t => t.subscriptionStatus === statusFilter) : tenants;
+
   const openModal = () => {
     setForm({ slug: "", displayName: "", legalName: "", taxId: "", providerCode: "", adminEmail: "", adminFullName: "" });
     setSlugTouched(false);
@@ -105,6 +108,11 @@ export default function TenantsPage() {
     } catch (e: any) { setError(e?.response?.data?.error ?? "Error"); }
   };
 
+  const cancelTenant = async (t: Tenant) => {
+    if (!confirm(`¿Cancelar definitivamente a ${t.displayName}? Su suscripción se marcará como cancelada.`)) return;
+    try { await api.delete(`/platform/tenants/${t.id}`); load(); } catch {}
+  };
+
   const columns: ColumnDef<Tenant>[] = [
     { header: () => <Tooltip content="Nombre comercial del mayorista">Nombre</Tooltip>, accessorKey: "displayName" },
     { header: () => <Tooltip content="Identificador único usado en la URL (ej: mi-mayorista)">Slug</Tooltip>, accessorKey: "slug" },
@@ -129,6 +137,9 @@ export default function TenantsPage() {
           ) : row.original.subscriptionStatus === "suspended" ? (
             <button onClick={() => openStatusModal(row.original, "reactivate")} className="text-sm text-green-600 hover:underline">Reactivar</button>
           ) : null}
+          {row.original.subscriptionStatus !== "cancelled" && (
+            <button onClick={() => cancelTenant(row.original)} className="text-sm text-destructive hover:underline">Cancelar</button>
+          )}
         </div>
       ),
     },
@@ -158,10 +169,21 @@ export default function TenantsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-3xl font-bold">Tenants</h2>
-        <Button onClick={openModal}>Nuevo Mayorista</Button>
+        <div>
+          <h2 className="text-3xl font-bold">Tenants</h2>
+        </div>
+        <div className="flex items-center gap-3">
+          <select className="border rounded-md px-3 py-2 text-sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="active">Activos</option>
+            <option value="trial">Prueba</option>
+            <option value="suspended">Suspendidos</option>
+            <option value="cancelled">Cancelados</option>
+            <option value="">Todos</option>
+          </select>
+          <Button onClick={openModal}>Nuevo Mayorista</Button>
+        </div>
       </div>
-      <DataTable columns={columns} data={tenants} filters={filters} searchable={true} pagination={true} />
+      <DataTable columns={columns} data={filteredTenants} filters={filters} searchable={true} pagination={true} />
 
       <Modal open={open} onClose={() => { setOpen(false); setGeneratedPwd(""); }} title={generatedPwd ? "Mayorista Creado" : "Provisionar Mayorista"} description={generatedPwd ? "El mayorista fue creado exitosamente. Guarda esta contraseña, no se podrá recuperar después." : "Se creará una base de datos independiente y se configurará el acceso."}>
         {generatedPwd ? (

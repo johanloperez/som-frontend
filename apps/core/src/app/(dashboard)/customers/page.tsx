@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@repo/api";
-import { Button, DataTable, Input, Modal, Tooltip, type FilterConfig } from "@repo/ui";
+import { Button, Badge, DataTable, Input, Modal, Tooltip, type FilterConfig } from "@repo/ui";
 import type { ColumnDef } from "@tanstack/react-table";
 
 interface Customer {
   id: string;
+  ownerUserId?: string;
   fullName: string;
   email: string;
   businessName?: string;
@@ -21,6 +22,8 @@ interface Customer {
   postalCode?: string;
   creditScore?: number;
   createdAt: string;
+  userEmail?: string;
+  userStatus?: string;
 }
 
 export default function CustomersPage() {
@@ -28,70 +31,28 @@ export default function CustomersPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
   const [form, setForm] = useState({
-    fullName: "",
-    email: "",
-    businessName: "",
-    taxId: "",
-    taxAddress: "",
-    phoneE164: "",
-    country: "",
-    region: "",
-    city: "",
-    streetLine1: "",
-    streetLine2: "",
-    postalCode: "",
-    creditScore: 0
+    fullName: "", email: "", businessName: "", taxId: "", taxAddress: "",
+    phoneE164: "", country: "", region: "", city: "", streetLine1: "",
+    streetLine2: "", postalCode: "", creditScore: 0
   });
   const [error, setError] = useState("");
+  const [generatedPwd, setGeneratedPwd] = useState("");
 
   const load = async () => {
-    try {
-      const r = await api.get("/platform/customers");
-      setCustomers(r.data);
-    } catch {}
+    try { const r = await api.get("/platform/customers"); setCustomers(r.data); } catch {}
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   const openCreate = () => {
-    setEditing(null);
-    setForm({
-      fullName: "",
-      email: "",
-      businessName: "",
-      taxId: "",
-      taxAddress: "",
-      phoneE164: "",
-      country: "",
-      region: "",
-      city: "",
-      streetLine1: "",
-      streetLine2: "",
-      postalCode: "",
-      creditScore: 0
-    });
+    setEditing(null); setGeneratedPwd("");
+    setForm({ fullName: "", email: "", businessName: "", taxId: "", taxAddress: "", phoneE164: "", country: "", region: "", city: "", streetLine1: "", streetLine2: "", postalCode: "", creditScore: 0 });
     setOpen(true);
   };
 
   const openEdit = (c: Customer) => {
-    setEditing(c);
-    setForm({
-      fullName: c.fullName,
-      email: c.email || "",
-      businessName: c.businessName || "",
-      taxId: c.taxId || "",
-      taxAddress: c.taxAddress || "",
-      phoneE164: c.phoneE164 || "",
-      country: c.country || "",
-      region: c.region || "",
-      city: c.city || "",
-      streetLine1: c.streetLine1 || "",
-      streetLine2: c.streetLine2 || "",
-      postalCode: c.postalCode || "",
-      creditScore: c.creditScore || 0
-    });
+    setEditing(c); setGeneratedPwd("");
+    setForm({ fullName: c.fullName, email: c.email || "", businessName: c.businessName || "", taxId: c.taxId || "", taxAddress: c.taxAddress || "", phoneE164: c.phoneE164 || "", country: c.country || "", region: c.region || "", city: c.city || "", streetLine1: c.streetLine1 || "", streetLine2: c.streetLine2 || "", postalCode: c.postalCode || "", creditScore: c.creditScore || 0 });
     setOpen(true);
   };
 
@@ -100,39 +61,46 @@ export default function CustomersPage() {
     try {
       if (editing) {
         await api.put(`/platform/customers/${editing.id}`, form);
+        setOpen(false); load();
       } else {
-        await api.post("/platform/customers", form);
+        const res = await api.post("/platform/customers", form);
+        setGeneratedPwd(res.data.password);
       }
-      setOpen(false);
-      load();
-    } catch (e: any) {
-      setError(e?.response?.data?.error ?? "Error al guardar");
-    }
+    } catch (e: any) { setError(e?.response?.data?.error ?? "Error al guardar"); }
   };
 
   const remove = async (id: string) => {
-    if (!confirm("¿Eliminar cliente?")) return;
+    try { await api.delete(`/platform/customers/${id}`); load(); } catch {}
+  };
+
+  const resetPwd = async (c: Customer) => {
     try {
-      await api.delete(`/platform/customers/${id}`);
-      load();
-    } catch {}
+      const res = await api.post(`/platform/customers/${c.id}/reset-password`);
+      setGeneratedPwd(res.data.newPassword);
+    } catch (e: any) { setError(e?.response?.data?.error ?? "Error"); }
   };
 
   const columns: ColumnDef<Customer>[] = [
-    { header: () => <Tooltip content="Nombre completo del cliente minorista">Nombre</Tooltip>, accessorKey: "fullName" },
-    { header: () => <Tooltip content="Correo electrónico del cliente">Email</Tooltip>, accessorKey: "email" },
-    { header: () => <Tooltip content="Nombre de la empresa del cliente">Empresa</Tooltip>, accessorKey: "businessName" },
-    { header: () => <Tooltip content="Identificador fiscal (RUC, RIF, NIF, CUIT, etc.)">ID Fiscal</Tooltip>, accessorKey: "taxId" },
-    { header: () => <Tooltip content="Dirección fiscal del cliente">Dir. Fiscal</Tooltip>, accessorKey: "taxAddress" },
-    { header: () => <Tooltip content="Número de teléfono del cliente">Teléfono</Tooltip>, accessorKey: "phoneE164" },
-    { header: () => <Tooltip content="País del cliente">País</Tooltip>, accessorKey: "country" },
-    { header: () => <Tooltip content="Fecha de registro del cliente">Registrado</Tooltip>, accessorKey: "createdAt" },
+    { header: "Nombre", accessorKey: "fullName", cell: ({ row }) => <span className="font-medium">{row.original.fullName}</span> },
+    { header: "Email", accessorKey: "email" },
+    { header: "Usuario", id: "user", cell: ({ row }) => {
+      const c = row.original;
+      return (
+        <div>
+          <p className="text-sm">{c.userEmail || "—"}</p>
+          {c.userStatus && <Badge variant={c.userStatus === "active" ? "success" : "warning"}>{c.userStatus}</Badge>}
+        </div>
+      );
+    }},
+    { header: "Empresa", accessorKey: "businessName" },
+    { header: "País", accessorKey: "country" },
+    { header: "Registrado", accessorKey: "createdAt", cell: ({ getValue }) => new Date(getValue() as string).toLocaleDateString() },
     {
-      id: "actions",
-      cell: ({ row }) => (
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => openEdit(row.original)}>Editar</Button>
-          <Button size="sm" variant="destructive" onClick={() => remove(row.original.id)}>Eliminar</Button>
+      id: "actions", cell: ({ row }) => (
+        <div className="flex gap-1">
+          <Button size="sm" variant="ghost" onClick={() => openEdit(row.original)}>Editar</Button>
+          <Button size="sm" variant="ghost" onClick={() => resetPwd(row.original)}>Reset Pwd</Button>
+          <Button size="sm" variant="ghost" onClick={() => remove(row.original.id)}>Eliminar</Button>
         </div>
       ),
     },
@@ -148,26 +116,48 @@ export default function CustomersPage() {
         <h2 className="text-3xl font-bold">Clientes</h2>
         <Button onClick={openCreate}>Nuevo Cliente</Button>
       </div>
-      <p className="text-sm text-muted-foreground mb-4">Usuarios registrados como clientes desde la app.</p>
+
+      {generatedPwd && (
+        <div className="mb-4 rounded-md border border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-green-950 dark:text-green-100">Contraseña generada</p>
+              <p className="text-lg font-mono font-bold select-all text-green-950 dark:text-white">{generatedPwd}</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setGeneratedPwd("")}>✕</Button>
+          </div>
+          <p className="text-xs text-green-700 dark:text-green-300 mt-1">Copia esta contraseña. No se podrá recuperar después.</p>
+        </div>
+      )}
+
       <DataTable columns={columns} data={customers} filters={filters} searchable={true} pagination={true} />
 
-      <Modal open={open} onClose={() => setOpen(false)} title={editing ? "Editar Cliente" : "Nuevo Cliente"}>
+      <Modal open={open} onClose={() => { setOpen(false); setGeneratedPwd(""); }} title={editing ? "Editar Cliente" : "Nuevo Cliente"} description={editing ? "" : "Se creará un usuario y se generará una contraseña automáticamente."}>
         <div className="space-y-3">
-          <Input id="fullName" label="Nombre completo" tooltip="Nombre completo del cliente" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
-          <Input id="email" label="Email" tooltip="Correo electrónico del cliente" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          <Input id="businessName" label="Empresa" tooltip="Nombre de la empresa del cliente" value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} />
-          <Input id="taxId" label="ID Fiscal" tooltip="Identificador fiscal (RUC, RIF, NIF, CUIT, etc.)" value={form.taxId} onChange={(e) => setForm({ ...form, taxId: e.target.value })} />
-          <Input id="taxAddress" label="Dirección fiscal" tooltip="Dirección fiscal del cliente" value={form.taxAddress} onChange={(e) => setForm({ ...form, taxAddress: e.target.value })} />
-          <Input id="phoneE164" label="Teléfono" tooltip="Número de teléfono del cliente" value={form.phoneE164} onChange={(e) => setForm({ ...form, phoneE164: e.target.value })} />
-          <Input id="country" label="País" tooltip="País del cliente" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
-          <Input id="region" label="Región" tooltip="Región o estado del cliente" value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} />
-          <Input id="city" label="Ciudad" tooltip="Ciudad del cliente" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
-          <Input id="streetLine1" label="Dirección" tooltip="Dirección del cliente" value={form.streetLine1} onChange={(e) => setForm({ ...form, streetLine1: e.target.value })} />
-          <Input id="streetLine2" label="Dirección 2" tooltip="Dirección adicional del cliente" value={form.streetLine2} onChange={(e) => setForm({ ...form, streetLine2: e.target.value })} />
-          <Input id="postalCode" label="Código postal" tooltip="Código postal del cliente" value={form.postalCode} onChange={(e) => setForm({ ...form, postalCode: e.target.value })} />
-          <Input id="creditScore" label="Score de crédito" tooltip="Puntuación de crédito del cliente" type="number" value={form.creditScore} onChange={(e) => setForm({ ...form, creditScore: Number(e.target.value) })} />
+          <Input id="fullName" label="Nombre completo" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
+          <Input id="email" label="Email (será el usuario de login)" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <Input id="businessName" label="Empresa" value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} />
+          <div className="grid grid-cols-2 gap-3">
+            <Input id="taxId" label="ID Fiscal" value={form.taxId} onChange={(e) => setForm({ ...form, taxId: e.target.value })} />
+            <Input id="phoneE164" label="Teléfono" value={form.phoneE164} onChange={(e) => setForm({ ...form, phoneE164: e.target.value })} />
+          </div>
+          <Input id="taxAddress" label="Dirección fiscal" value={form.taxAddress} onChange={(e) => setForm({ ...form, taxAddress: e.target.value })} />
+          <div className="grid grid-cols-3 gap-2">
+            <Input id="country" label="País" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
+            <Input id="region" label="Región" value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} />
+            <Input id="city" label="Ciudad" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+          </div>
+          <Input id="streetLine1" label="Dirección" value={form.streetLine1} onChange={(e) => setForm({ ...form, streetLine1: e.target.value })} />
+          <div className="grid grid-cols-2 gap-3">
+            <Input id="streetLine2" label="Dirección 2" value={form.streetLine2} onChange={(e) => setForm({ ...form, streetLine2: e.target.value })} />
+            <Input id="postalCode" label="Código postal" value={form.postalCode} onChange={(e) => setForm({ ...form, postalCode: e.target.value })} />
+          </div>
+          <Input id="creditScore" label="Score de crédito" type="number" value={form.creditScore || ""} onChange={(e) => setForm({ ...form, creditScore: Number(e.target.value) })} />
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button onClick={save} className="w-full">{editing ? "Actualizar" : "Crear"}</Button>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={save}>{editing ? "Guardar" : "Crear Cliente"}</Button>
+          </div>
         </div>
       </Modal>
     </div>
