@@ -8,7 +8,8 @@
     "typecheck": "turbo typecheck",
     "clean": "turbo clean",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "generate:types": "turbo run generate:types"
+    "generate:types": "turbo run generate:types",
+    "sync:theme": "copy packages\\ui\\src\\theme.css apps\\wholesaler\\src\\app\\globals.css & copy packages\\ui\\src\\theme.css apps\\core\\src\\app\\globals.css & copy packages\\ui\\src\\theme.css apps\\customer\\src\\app\\globals.css"
   },
   "devDependencies": {
     "turbo": "^2.5.0",

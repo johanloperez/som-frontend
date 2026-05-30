@@ -1,19 +1,124 @@
 @import "tailwindcss";
+@source "../../../../packages/ui/src/**/*.tsx";
+
+/* ═══════════ PALETA MAESTRA ═══════════ */
+/* Cambiá solo estos 3 y toda la app se actualiza */
 @theme {
-  --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(222.2 84% 4.9%);
-  --color-primary: hsl(222.2 47.4% 11.2%);
-  --color-primary-foreground: hsl(210 40% 98%);
-  --color-secondary: hsl(210 40% 96.1%);
-  --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
-  --color-destructive: hsl(0 84.2% 60.2%);
-  --color-destructive-foreground: hsl(210 40% 98%);
-  --color-muted: hsl(210 40% 96.1%);
-  --color-muted-foreground: hsl(215.4 16.3% 46.9%);
-  --color-accent: hsl(210 40% 96.1%);
-  --color-accent-foreground: hsl(222.2 47.4% 11.2%);
-  --color-border: hsl(214.3 31.8% 91.4%);
-  --color-input: hsl(214.3 31.8% 91.4%);
-  --color-ring: hsl(222.2 84% 4.9%);
-  --radius: 0.5rem;
+  --app-primary: hsl(28, 100%, 69%);
+  --app-secondary: hsl(174, 98%, 17%);
+  --app-primary-fore: hsl(185.24, 52.28%, 61.37%);
+  --app-secondary-fore: hsl(185.24, 52.28%, 61.37%);
+  --app-surface: hsl(185.24, 52.28%, 61.37%);
+  --app-text: hsl(345.07, 84.36%, 100%);
+
+  /* ─── Sidebar (colores independientes) ─── */
+  --app-sidebar-bg: hsl(174, 98%, 17%);
+  --app-sidebar-title: var(--app-text);
+  --app-sidebar-subtitle: hsl(185.24, 52.28%, 100%);
+  --app-sidebar-group-label: hsl(185.24, 52.28%, 0%);
+  --app-sidebar-item-text: hsl(185.24, 52.28%, 100%);
+  --app-sidebar-item-hover: hsl(245 40% 95%);
+  --app-sidebar-item-active-bg: var(--app-primary);
+  --app-sidebar-item-active-text: hsl(0 0% 100%);
+  --app-sidebar-divider: hsl(40 5% 88%);
+
+  /* ─── App ─── */
+  --color-background: hsl(28, 100%, 69%);
+  --color-foreground: var(--app-text);
+  --color-primary: hsl(28, 100%, 69%);  /* ← botones solid */
+  --color-primary-foreground: var(--app-primary-fore);
+  --color-button: hsl(174, 98%, 17%);
+  --color-secondary-foreground: var(--app-primary-fore);
+  --color-muted: hsl(245 10% 95%);
+  --color-muted-foreground: hsl(240 5% 55%);
+  --color-accent: hsl(245 50% 94%);
+  --color-accent-foreground: hsl(245 40% 40%);
+  --color-border: hsl(40 10% 90%);
+  --color-input: hsl(40 10% 90%);
+  --color-ring: var(--app-primary);
+  --color-card: hsl(0 0% 100%);
+  --color-card-bg: var(--app-secondary);
+  --color-card-foreground: var(--app-text);
+  --color-destructive: hsl(355 60% 60%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-success: hsl(155 50% 50%);
+  --color-success-foreground: hsl(0 0% 100%);
+  --color-warning: hsl(38 85% 55%);
+  --color-warning-foreground: hsl(0 0% 100%);
+  --color-info: hsl(200 75% 55%);
+  --color-info-foreground: hsl(0 0% 100%);
+
+  /* Dashboard cards (4 colores) */
+  --app-dash-card-1-bg: hsl(245 70% 65% / 0.10);
+  --app-dash-card-1-text: hsl(245 50% 40%);
+  --app-dash-card-1-border: hsl(245 50% 80% / 0.5);
+  --app-dash-card-2-bg: hsl(185 70% 65% / 0.10);
+  --app-dash-card-2-text: hsl(185 50% 35%);
+  --app-dash-card-2-border: hsl(185 50% 80% / 0.5);
+  --app-dash-card-3-bg: hsl(130 60% 65% / 0.10);
+  --app-dash-card-3-text: hsl(130 45% 30%);
+  --app-dash-card-3-border: hsl(130 45% 80% / 0.5);
+  --app-dash-card-4-bg: hsl(35 80% 65% / 0.10);
+  --app-dash-card-4-text: hsl(35 60% 35%);
+  --app-dash-card-4-border: hsl(35 60% 80% / 0.5);
+
+  /* Tablas */
+  --app-table-header-bg: var(--app-secondary);
+  --app-table-row-hover: hsl(245 10% 95%);
+  --app-table-divider: hsl(245 10% 88%);
+
+  /* Inputs y filtros */
+  --app-input-bg: hsl(245 10% 94%);
+
+  /* Badges */
+  --app-badge-success-bg: hsl(155 50% 50% / 0.12);
+  --app-badge-success-text: hsl(155 60% 30%);
+  --app-badge-warning-bg: hsl(38 85% 55% / 0.12);
+  --app-badge-warning-text: hsl(38 70% 30%);
+  --app-badge-danger-bg: hsl(355 60% 60% / 0.12);
+  --app-badge-danger-text: hsl(355 60% 35%);
+  --app-badge-info-bg: hsl(200 75% 55% / 0.12);
+  --app-badge-info-text: hsl(200 60% 30%);
+
+  --radius: 0.75rem;
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.03), 0 1px 1px rgba(0,0,0,0.02);
+  --shadow-card-hover: 0 3px 8px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.03);
+}
+
+.dark {
+  --app-primary: hsl(245 70% 70%);
+  --app-surface: hsl(30 15% 7%);
+  --app-text: hsl(40 20% 90%);
+  --app-sidebar-bg: hsl(30 15% 10%);
+  --app-sidebar-subtitle: hsl(30 10% 60%);
+  --app-sidebar-group-label: hsl(30 10% 55%);
+  --app-sidebar-item-text: hsl(30 15% 65%);
+  --app-sidebar-item-hover: hsl(245 25% 25%);
+  --app-sidebar-divider: hsl(245 10% 22%);
+  --color-card: hsl(30 15% 10%);
+  --color-button: hsl(30 15% 14%);
+  --app-dash-card-1-bg: hsl(245 50% 40% / 0.20);
+  --app-dash-card-1-text: hsl(245 60% 75%);
+  --app-dash-card-1-border: hsl(245 40% 50% / 0.3);
+  --app-dash-card-2-bg: hsl(185 50% 40% / 0.20);
+  --app-dash-card-2-text: hsl(185 60% 75%);
+  --app-dash-card-2-border: hsl(185 40% 50% / 0.3);
+  --app-dash-card-3-bg: hsl(130 45% 40% / 0.20);
+  --app-dash-card-3-text: hsl(130 55% 70%);
+  --app-dash-card-3-border: hsl(130 35% 50% / 0.3);
+  --app-dash-card-4-bg: hsl(35 60% 45% / 0.20);
+  --app-dash-card-4-text: hsl(35 70% 75%);
+  --app-dash-card-4-border: hsl(35 50% 50% / 0.3);
+  --app-table-header-bg: hsl(245 10% 15%);
+  --app-table-row-hover: hsl(245 10% 15%);
+  --app-table-divider: hsl(245 10% 20%);
+  --app-input-bg: hsl(245 10% 18%);
+}
+
+* { border-color: var(--color-border); }
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }

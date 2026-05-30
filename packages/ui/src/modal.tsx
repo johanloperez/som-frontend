@@ -30,7 +30,7 @@ export function Modal({ open, onClose, title, description, children }: ModalProp
   return createPortal(
     <div ref={ref} style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)" }} onClick={onClose} />
-      <div style={{ position: "relative", zIndex: 10000, width: "100%", maxWidth: "32rem", borderRadius: "0.5rem", border: "1px solid var(--color-border, #e5e7eb)", backgroundColor: "var(--color-background, #fff)", padding: "1.5rem", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)", color: "var(--color-foreground, #000)" }}>
+      <div style={{ position: "relative", zIndex: 10000, width: "100%", maxWidth: "32rem", borderRadius: "1rem", backgroundColor: "var(--color-background, #fff)", padding: "1.5rem", boxShadow: "0 20px 60px rgba(0,0,0,0.15)", color: "var(--color-foreground, #000)" }}>
         <div style={{ marginBottom: "1rem" }}>
           <h2 style={{ fontSize: "1.125rem", fontWeight: 600 }}>{title}</h2>
           {description && <p style={{ fontSize: "0.875rem", color: "var(--color-muted-foreground, #666)", marginTop: "0.25rem" }}>{description}</p>}

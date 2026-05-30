@@ -140,11 +140,11 @@ export function DataTable<TData>({
         <table className="w-full caption-bottom text-sm">
           <thead>
             {table.getHeaderGroups().map((hg) => (
-              <tr key={hg.id} className="bg-muted/50">
+              <tr key={hg.id} className="bg-[var(--app-sidebar-bg)]">
                 {hg.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="h-12 px-4 text-left align-middle font-medium text-muted-foreground cursor-pointer select-none"
+                    className="h-12 px-4 text-center align-middle font-medium cursor-pointer select-none truncate"
                     onClick={header.column.getToggleSortingHandler()}
                   >
                     {header.isPlaceholder ? null : (
@@ -166,7 +166,7 @@ export function DataTable<TData>({
               table.getRowModel().rows.map((row) => (
                 <tr key={row.id} className="transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="p-4 align-middle">
+                    <td key={cell.id} className="p-4 text-center align-middle truncate max-w-[250px]">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}

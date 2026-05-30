@@ -2,38 +2,24 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { api } from "@repo/api";
-import { Card, CardContent, Badge, Button, Modal, useAuth } from "@repo/ui";
-
-interface Customer {
-  id: string;
-  globalCustomerId?: string;
-}
-
-interface Product {
-  id: string;
-  stockQuantity: number;
-  minStock: number;
-}
-
-interface Request {
-  associationId: string;
-  status: string;
-}
+import { Button, Modal, useAuth } from "@repo/ui";
+import { Users, UserCheck, Clock, ShoppingCart, Package, AlertTriangle, Archive, type LucideIcon } from "lucide-react";
 
 interface WidgetDef {
   key: string;
   label: string;
-  color: string;
+  card: number;
+  icon: LucideIcon;
 }
 
 const ALL_WIDGETS: WidgetDef[] = [
-  { key: "totalCustomers", label: "Total Clientes", color: "text-blue-600 dark:text-blue-400" },
-  { key: "linkedCustomers", label: "Clientes Vinculados", color: "text-green-600 dark:text-green-400" },
-  { key: "pendingCustomers", label: "Clientes Pendientes", color: "text-yellow-600 dark:text-yellow-400" },
-  { key: "pendingRequests", label: "Solicitudes de Vinculación", color: "text-orange-600 dark:text-orange-400" },
-  { key: "totalProducts", label: "Total Productos", color: "text-purple-600 dark:text-purple-400" },
-  { key: "lowStock", label: "Productos Stock Bajo", color: "text-red-600 dark:text-red-400" },
-  { key: "outOfStock", label: "Productos Sin Stock", color: "text-gray-600 dark:text-gray-400" },
+  { key: "totalCustomers", label: "Total Clientes", card: 1, icon: Users },
+  { key: "linkedCustomers", label: "Clientes Vinculados", card: 2, icon: UserCheck },
+  { key: "pendingCustomers", label: "Clientes Pendientes", card: 3, icon: Clock },
+  { key: "pendingRequests", label: "Solicitudes de Vinculación", card: 4, icon: ShoppingCart },
+  { key: "totalProducts", label: "Total Productos", card: 1, icon: Package },
+  { key: "lowStock", label: "Productos Stock Bajo", card: 2, icon: AlertTriangle },
+  { key: "outOfStock", label: "Productos Sin Stock", card: 3, icon: Archive },
 ];
 
 const STORAGE_KEY = "wholesaler_dashboard_widgets";
@@ -111,16 +97,23 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {widgets.map((w) => (
-          <Card key={w.key}>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">{w.label}</p>
-              <p className={`text-3xl font-bold mt-1 ${w.color}`}>
-                {data[w.key as keyof typeof data]}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+        {widgets.map((w) => {
+          const Icon = w.icon;
+          return (
+          <div key={w.key} className="rounded-2xl shadow-card hover:shadow-card-hover p-5 text-center transition-all duration-200"
+            style={{
+              backgroundColor: `var(--color-card-bg)`,
+              color: `var(--color-card-text)`,
+              border: `1px solid var(--color-card-border)`,
+            }}
+          >
+            <Icon size={24} className="mx-auto mb-2 opacity-70" />
+            <p className="text-xs uppercase tracking-wider font-medium opacity-70">{w.label}</p>
+            <p className="text-3xl font-bold mt-2">
+              {data[w.key as keyof typeof data]}
+            </p>
+          </div>
+        );})}
       </div>
 
       <Modal open={showConfig} onClose={() => setShowConfig(false)} title="Personalizar Dashboard" description="Selecciona los indicadores que quieres ver.">

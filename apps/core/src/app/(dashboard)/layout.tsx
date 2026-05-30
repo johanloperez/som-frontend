@@ -2,105 +2,83 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { cn, Tooltip } from "@repo/ui";
-import { AuthProvider, useAuth } from "@repo/ui";
+import { cn, AuthProvider, useAuth } from "@repo/ui";
 import { useEffect } from "react";
+import { LayoutDashboard, Building2, Users, Package, Shield, BarChart3, type LucideIcon } from "lucide-react";
 
-interface NavItem { href: string; label: string; tooltip: string }
-
-interface NavGroup {
-  label: string;
-  items: NavItem[];
-}
-
-const NAV_GROUPS: NavGroup[] = [
-  {
-    label: "General",
-    items: [{ href: "/dashboard", label: "Dashboard", tooltip: "Resumen general de la plataforma" }],
-  },
-  {
-    label: "Administración",
-    items: [
-      { href: "/tenants", label: "Mayoristas", tooltip: "Gestión de mayoristas registrados en la plataforma" },
-      { href: "/customers", label: "Clientes", tooltip: "Listado de clientes minoristas registrados" },
-      { href: "/plans", label: "Planes", tooltip: "Planes de suscripción disponibles para mayoristas" },
-    ],
-  },
-  {
-    label: "Finanzas",
-    items: [
-      { href: "/profit", label: "Ganancias", tooltip: "Reporte de ingresos, facturación y métricas financieras" },
-    ],
-  },
-  {
-    label: "RBAC",
-    items: [
-      { href: "/rbac/users", label: "Usuarios Core", tooltip: "Administradores de la plataforma y sus roles" },
-      { href: "/rbac/roles", label: "Roles", tooltip: "Roles con permisos asignables a usuarios" },
-      { href: "/rbac/resources", label: "Recursos", tooltip: "Recursos del sistema para control de permisos" },
-    ],
-  },
-];
+interface NavItem { href: string; label: string; icon: LucideIcon }
+interface NavGroup { label: string; items: NavItem[] }
 
 function SidebarInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, loading, logout } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (!loading && !user) router.push("/login");
-  }, [user, loading, router]);
+  useEffect(() => { if (!loading && !user) router.push("/login"); }, [user, loading, router]);
+  if (loading || !user) return <div className="flex min-h-screen items-center justify-center" style={{ color: "var(--app-text)" }}>Cargando...</div>;
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center"><p>Loading...</p></div>;
-  if (!user) return null;
+  const s = (v: string) => `var(${v})`;
+
+  const navGroups: NavGroup[] = [
+    { label: "General", items: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }] },
+    { label: "Administración", items: [
+      { href: "/tenants", label: "Mayoristas", icon: Building2 },
+      { href: "/customers", label: "Clientes", icon: Users },
+      { href: "/plans", label: "Planes", icon: Package },
+    ]},
+    { label: "Finanzas", items: [{ href: "/profit", label: "Ganancias", icon: BarChart3 }] },
+    { label: "RBAC", items: [
+      { href: "/rbac/users", label: "Usuarios Core", icon: Users },
+      { href: "/rbac/roles", label: "Roles", icon: Shield },
+      { href: "/rbac/resources", label: "Recursos", icon: Shield },
+    ]},
+  ];
 
   return (
     <div className="flex min-h-screen">
-      <aside className="w-64 border-r bg-background p-4 flex flex-col">
-        <div className="mb-6">
-          <h1 className="text-lg font-bold">Core Portal</h1>
-          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+      <aside className="w-64 shrink-0 flex flex-col shadow-sm" style={{ backgroundColor: s("--app-sidebar-bg") }}>
+        <div className="px-5 py-5" style={{ borderBottom: `1px solid ${s("--app-sidebar-divider")}` }}>
+          <h1 className="text-lg font-bold" style={{ color: s("--app-sidebar-title") }}>Core Portal</h1>
+          <p className="text-xs mt-0.5 truncate" style={{ color: s("--app-sidebar-subtitle") }}>{user.email}</p>
         </div>
-        <nav className="flex-1 space-y-4">
-          {NAV_GROUPS.map((group) => (
+        <nav className="flex-1 overflow-y-auto px-5 py-3 space-y-5">
+          {navGroups.map((group) => (
             <div key={group.label}>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-1">
-                {group.label}
-              </p>
-              {group.items.map((item) => {
-                const active = pathname.startsWith(item.href);
-                return (
-                  <Tooltip key={item.href} content={item.tooltip}>
-                    <Link
-                      href={item.href}
-                      className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                        active ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-                      )}
+              <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: s("--app-sidebar-group-label") }}>{group.label}</p>
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const active = pathname.startsWith(item.href);
+                  const Icon = item.icon;
+                  return (
+                    <Link key={item.href} href={item.href}
+                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium transition-colors"
+                      style={active ? {
+                        backgroundColor: s("--app-sidebar-item-active-bg"),
+                        color: s("--app-sidebar-item-active-text"),
+                      } : {
+                        color: s("--app-sidebar-item-text"),
+                      }}
+                      onMouseEnter={(e) => { if (!active) e.currentTarget.style.backgroundColor = s("--app-sidebar-item-hover"); }}
+                      onMouseLeave={(e) => { if (!active) e.currentTarget.style.backgroundColor = ""; }}
                     >
+                      <Icon size={20} className="shrink-0" />
                       {item.label}
                     </Link>
-                  </Tooltip>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           ))}
         </nav>
-        <Tooltip content="Cerrar la sesión actual">
-          <button onClick={logout} className="text-sm text-muted-foreground hover:text-foreground text-left py-2 mt-4">
-            Cerrar sesión
-          </button>
-        </Tooltip>
+        <button onClick={logout} className="text-sm text-left px-5 py-4" style={{ color: s("--app-sidebar-subtitle") }}>
+          Cerrar sesión
+        </button>
       </aside>
-      <main className="flex-1 p-8">{children}</main>
+      <main className="flex-1 p-8" style={{ backgroundColor: s("--color-background") }}>{children}</main>
     </div>
   );
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <AuthProvider>
-      <SidebarInner>{children}</SidebarInner>
-    </AuthProvider>
-  );
+  return <AuthProvider><SidebarInner>{children}</SidebarInner></AuthProvider>;
 }
