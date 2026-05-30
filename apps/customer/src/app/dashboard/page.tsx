@@ -20,8 +20,8 @@ export default function CustomerDashboard() {
         <a href="/dashboard/wholesalers" className="rounded-2xl shadow-card hover:shadow-card-hover p-6 text-center transition-all duration-200"
           style={{ backgroundColor: "var(--color-card-2-bg)", color: "var(--color-card-2-text)", border: "1px solid var(--color-card-2-border)" }}>
           <Store size={28} className="mx-auto mb-3 opacity-70" />
-          <h3 className="font-semibold text-lg mb-1">Explorar Mayoristas</h3>
-          <p className="text-sm opacity-70">Encuentra mayoristas y solicita vinculación.</p>
+          <h3 className="font-semibold text-lg mb-1">Mayoristas</h3>
+          <p className="text-sm opacity-70">Descubre proveedores a través de sus publicaciones.</p>
         </a>
       </div>
     </div>

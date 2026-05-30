@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn, AuthProvider, useAuth } from "@repo/ui";
 import { api } from "@repo/api";
-import { LayoutDashboard, Users, Package, ShoppingCart, UserCheck, Handshake, CreditCard, MapPin, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, Users, Package, ShoppingCart, UserCheck, Handshake, CreditCard, MapPin, Store, type LucideIcon } from "lucide-react";
 
 interface NavItem { href: string; label: string; icon: LucideIcon }
 interface NavGroup { label: string; items: NavItem[] }
@@ -18,6 +18,7 @@ const NAV_GROUPS: NavGroup[] = [
     { href: "/orders", label: "Pedidos", icon: ShoppingCart },
     { href: "/sellers", label: "Vendedores", icon: UserCheck },
     { href: "/associations", label: "Vinculaciones", icon: Handshake },
+    { href: "/publications", label: "Publicaciones", icon: Store },
   ]},
   { label: "Configuración", items: [{ href: "/settings/regions", label: "Regiones", icon: MapPin }] },
   { label: "Mi Cuenta", items: [{ href: "/account/billing", label: "Facturación", icon: CreditCard }] },

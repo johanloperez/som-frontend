@@ -60,7 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem("auth_user");
     sessionStorage.removeItem("access_token");
     setUser(null);
-    router.push("/login");
+    setLoading(false);
+    window.location.href = "/login";
   };
 
   return (

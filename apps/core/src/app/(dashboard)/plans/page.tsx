@@ -19,6 +19,7 @@ interface Plan {
   includesDirectoryListing: boolean;
   pushNotificationsEnabled: boolean;
   reportsEnabled: boolean;
+  publicationsEnabled: boolean;
   exportFormats: string;
 }
 
@@ -26,7 +27,7 @@ export default function PlansPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Plan | null>(null);
-  const [form, setForm] = useState({ name: "", monthlyPrice: 0, yearlyPrice: 0, maxUsers: 5, maxSellers: 3, maxProducts: 100, maxStorageMb: 100, maxCampaignsPerMonth: 5, backupEnabled: true, includesDirectoryListing: true, pushNotificationsEnabled: false, reportsEnabled: false, exportFormats: "csv" });
+  const [form, setForm] = useState({ name: "", monthlyPrice: 0, yearlyPrice: 0, maxUsers: 5, maxSellers: 3, maxProducts: 100, maxStorageMb: 100, maxCampaignsPerMonth: 5, backupEnabled: true, includesDirectoryListing: true, pushNotificationsEnabled: false, reportsEnabled: false, publicationsEnabled: false, exportFormats: "csv" });
   const [error, setError] = useState("");
 
   const load = async () => {
@@ -35,8 +36,22 @@ export default function PlansPage() {
 
   useEffect(() => { load(); }, []);
 
-  const openCreate = () => { setEditing(null); setForm({ name: "", monthlyPrice: 0, yearlyPrice: 0, maxUsers: 5, maxSellers: 3, maxProducts: 100, maxStorageMb: 100, maxCampaignsPerMonth: 5, backupEnabled: true, includesDirectoryListing: true, pushNotificationsEnabled: false, reportsEnabled: false, exportFormats: "csv" }); setOpen(true); };
-  const openEdit = (p: Plan) => { setEditing(p); setForm({ name: p.name, monthlyPrice: p.monthlyPrice, yearlyPrice: p.yearlyPrice, maxUsers: p.maxUsers, maxSellers: p.maxSellers, maxProducts: p.maxProducts, maxStorageMb: p.maxStorageMb, maxCampaignsPerMonth: p.maxCampaignsPerMonth, backupEnabled: p.backupEnabled, includesDirectoryListing: p.includesDirectoryListing, pushNotificationsEnabled: p.pushNotificationsEnabled, reportsEnabled: p.reportsEnabled, exportFormats: p.exportFormats }); setOpen(true); };
+  // Sync form when editing changes
+  useEffect(() => {
+    if (editing) {
+      setForm({
+        name: editing.name, monthlyPrice: editing.monthlyPrice, yearlyPrice: editing.yearlyPrice,
+        maxUsers: editing.maxUsers, maxSellers: editing.maxSellers, maxProducts: editing.maxProducts,
+        maxStorageMb: editing.maxStorageMb, maxCampaignsPerMonth: editing.maxCampaignsPerMonth,
+        backupEnabled: editing.backupEnabled, includesDirectoryListing: editing.includesDirectoryListing,
+        pushNotificationsEnabled: editing.pushNotificationsEnabled, reportsEnabled: editing.reportsEnabled,
+        publicationsEnabled: editing.publicationsEnabled, exportFormats: editing.exportFormats
+      });
+    }
+  }, [editing]);
+
+  const openCreate = () => { setEditing(null); setForm({ name: "", monthlyPrice: 0, yearlyPrice: 0, maxUsers: 5, maxSellers: 3, maxProducts: 100, maxStorageMb: 100, maxCampaignsPerMonth: 5, backupEnabled: true, includesDirectoryListing: true, pushNotificationsEnabled: false, reportsEnabled: false, publicationsEnabled: false, exportFormats: "csv" }); setOpen(true); };
+  const openEdit = (p: Plan) => { setEditing(p); setForm({ name: p.name, monthlyPrice: p.monthlyPrice, yearlyPrice: p.yearlyPrice, maxUsers: p.maxUsers, maxSellers: p.maxSellers, maxProducts: p.maxProducts, maxStorageMb: p.maxStorageMb, maxCampaignsPerMonth: p.maxCampaignsPerMonth, backupEnabled: p.backupEnabled, includesDirectoryListing: p.includesDirectoryListing, pushNotificationsEnabled: p.pushNotificationsEnabled, reportsEnabled: p.reportsEnabled, publicationsEnabled: p.publicationsEnabled, exportFormats: p.exportFormats }); setOpen(true); };
 
   const save = async () => {
     setError("");
@@ -68,6 +83,7 @@ export default function PlansPage() {
     { header: () => <Tooltip content="Indica si el plan incluye copias de seguridad automáticas">Backups</Tooltip>, accessorKey: "backupEnabled", cell: ({ getValue }) => getValue() ? "✓" : "—" },
     { header: () => <Tooltip content="Indica si el plan incluye notificaciones push">Push</Tooltip>, accessorKey: "pushNotificationsEnabled", cell: ({ getValue }) => getValue() ? "✓" : "—" },
     { header: () => <Tooltip content="Indica si el plan incluye reportes">Reportes</Tooltip>, accessorKey: "reportsEnabled", cell: ({ getValue }) => getValue() ? "✓" : "—" },
+    { header: () => <Tooltip content="Indica si el plan incluye publicaciones en el feed">Publicaciones</Tooltip>, accessorKey: "publicationsEnabled", cell: ({ getValue }) => getValue() ? "✓" : "—" },
     {
       id: "actions",
       cell: ({ row }) => (
@@ -90,32 +106,44 @@ export default function PlansPage() {
       <DataTable columns={columns} data={plans} filters={filters} searchable={true} pagination={true} />
 
       <Modal open={open} onClose={() => setOpen(false)} title={editing ? "Editar Plan" : "Nuevo Plan"}>
-        <div className="space-y-3">
-          <Input id="name" label="Nombre" tooltip="Nombre del plan de suscripción" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <Input id="monthlyPrice" label="Precio mensual" tooltip="Precio mensual en USD" type="number" value={form.monthlyPrice} onChange={(e) => setForm({ ...form, monthlyPrice: Number(e.target.value) })} />
-          <Input id="yearlyPrice" label="Precio anual" tooltip="Precio anual en USD" type="number" value={form.yearlyPrice} onChange={(e) => setForm({ ...form, yearlyPrice: Number(e.target.value) })} />
-          <Input id="maxUsers" label="Máx. usuarios" tooltip="Número máximo de usuarios administrativos" type="number" value={form.maxUsers} onChange={(e) => setForm({ ...form, maxUsers: Number(e.target.value) })} />
-          <Input id="maxSellers" label="Máx. vendedores" tooltip="Número máximo de vendedores permitidos" type="number" value={form.maxSellers} onChange={(e) => setForm({ ...form, maxSellers: Number(e.target.value) })} />
-          <Input id="maxProducts" label="Máx. productos" tooltip="Número máximo de productos permitidos" type="number" value={form.maxProducts} onChange={(e) => setForm({ ...form, maxProducts: Number(e.target.value) })} />
-          <Input id="maxStorageMb" label="Máx. almacenamiento (MB)" tooltip="Almacenamiento máximo en MB" type="number" value={form.maxStorageMb} onChange={(e) => setForm({ ...form, maxStorageMb: Number(e.target.value) })} />
-          <Input id="maxCampaignsPerMonth" label="Máx. campañas/mes" tooltip="Número máximo de campañas por mes" type="number" value={form.maxCampaignsPerMonth} onChange={(e) => setForm({ ...form, maxCampaignsPerMonth: Number(e.target.value) })} />
-          <Input id="exportFormats" label="Formatos de exportación" tooltip="Formatos permitidos separados por coma (ej: csv,xlsx)" value={form.exportFormats} onChange={(e) => setForm({ ...form, exportFormats: e.target.value })} />
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={form.backupEnabled} onChange={(e) => setForm({ ...form, backupEnabled: e.target.checked })} />
-            <span>Backups habilitados</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={form.includesDirectoryListing} onChange={(e) => setForm({ ...form, includesDirectoryListing: e.target.checked })} />
-            <span>Incluye listado en directorio</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={form.pushNotificationsEnabled} onChange={(e) => setForm({ ...form, pushNotificationsEnabled: e.target.checked })} />
-            <span>Notificaciones push habilitadas</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={form.reportsEnabled} onChange={(e) => setForm({ ...form, reportsEnabled: e.target.checked })} />
-            <span>Reportes habilitados</span>
-          </label>
+        <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+          <Input id="name" label="Nombre" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <div className="grid grid-cols-2 gap-3">
+            <Input id="monthlyPrice" label="Precio mensual" type="number" value={form.monthlyPrice} onChange={(e) => setForm({ ...form, monthlyPrice: Number(e.target.value) })} />
+            <Input id="yearlyPrice" label="Precio anual" type="number" value={form.yearlyPrice} onChange={(e) => setForm({ ...form, yearlyPrice: Number(e.target.value) })} />
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <Input id="maxUsers" label="Máx. usuarios" type="number" value={form.maxUsers} onChange={(e) => setForm({ ...form, maxUsers: Number(e.target.value) })} />
+            <Input id="maxSellers" label="Máx. vendedores" type="number" value={form.maxSellers} onChange={(e) => setForm({ ...form, maxSellers: Number(e.target.value) })} />
+            <Input id="maxProducts" label="Máx. productos" type="number" value={form.maxProducts} onChange={(e) => setForm({ ...form, maxProducts: Number(e.target.value) })} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input id="maxStorageMb" label="Almacenamiento (MB)" type="number" value={form.maxStorageMb} onChange={(e) => setForm({ ...form, maxStorageMb: Number(e.target.value) })} />
+            <Input id="maxCampaignsPerMonth" label="Campañas/mes" type="number" value={form.maxCampaignsPerMonth} onChange={(e) => setForm({ ...form, maxCampaignsPerMonth: Number(e.target.value) })} />
+          </div>
+          <Input id="exportFormats" label="Formatos de exportación" value={form.exportFormats} onChange={(e) => setForm({ ...form, exportFormats: e.target.value })} />
+          <div className="space-y-2 pt-2 border-t">
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={form.backupEnabled} onChange={(e) => setForm({ ...form, backupEnabled: e.target.checked })} className="accent-primary" />
+              Backups habilitados
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={form.includesDirectoryListing} onChange={(e) => setForm({ ...form, includesDirectoryListing: e.target.checked })} className="accent-primary" />
+              Listado en directorio
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={form.pushNotificationsEnabled} onChange={(e) => setForm({ ...form, pushNotificationsEnabled: e.target.checked })} className="accent-primary" />
+              Notificaciones push
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={form.reportsEnabled} onChange={(e) => setForm({ ...form, reportsEnabled: e.target.checked })} className="accent-primary" />
+              Reportes
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={form.publicationsEnabled} onChange={(e) => setForm({ ...form, publicationsEnabled: e.target.checked })} className="accent-primary" />
+              Publicaciones
+            </label>
+          </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button onClick={save} className="w-full">{editing ? "Actualizar" : "Crear"}</Button>
         </div>
