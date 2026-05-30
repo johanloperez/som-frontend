@@ -114,7 +114,12 @@ export default function AssociationsPage() {
                       {a.status === "active" ? "Activo" : a.status === "pending" ? "Pendiente" : a.status}
                     </Badge>
                     {a.status === "active" && a.tenant && (
-                      <Button size="sm" variant="outline" onClick={() => entrar(a.tenant!)}>Entrar</Button>
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => entrar(a.tenant!)}>Entrar</Button>
+                        <Button size="sm" variant="ghost" onClick={async () => {
+                          try { await api.delete(`/associations/${a.tenantId}`); load(); } catch {}
+                        }}>Desvincularse</Button>
+                      </>
                     )}
                   </div>
                 </div>

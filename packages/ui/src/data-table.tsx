@@ -144,17 +144,14 @@ export function DataTable<TData>({
                 {hg.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="h-12 px-4 text-center align-middle font-medium cursor-pointer select-none truncate"
+                    className="px-4 py-3 text-center align-middle font-medium cursor-pointer select-none"
                     onClick={header.column.getToggleSortingHandler()}
                   >
                     {header.isPlaceholder ? null : (
-                      <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1">
                         {flexRender(header.column.columnDef.header, header.getContext())}
-                        {{
-                          asc: " ↑",
-                          desc: " ↓",
-                        }[header.column.getIsSorted() as string] ?? null}
-                      </div>
+                        {header.column.getIsSorted() === "asc" ? " ▴" : header.column.getIsSorted() === "desc" ? " ▾" : ""}
+                      </span>
                     )}
                   </th>
                 ))}
