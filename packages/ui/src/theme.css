@@ -12,13 +12,14 @@
   --app-text: hsl(345.07, 84.36%, 100%);
 
   /* ─── Sidebar (colores independientes) ─── */
-  --app-sidebar-bg: hsl(174, 98%, 17%);
+  --app-sidebar-bg: var(--app-secondary);
   --app-sidebar-title: var(--app-text);
+  --app-sidebar-button: var(--app-primary);
   --app-sidebar-subtitle: hsl(185.24, 52.28%, 100%);
   --app-sidebar-group-label: hsl(185.24, 52.28%, 0%);
   --app-sidebar-item-text: hsl(185.24, 52.28%, 100%);
   --app-sidebar-item-hover: hsl(245 40% 95%);
-  --app-sidebar-item-active-bg: var(--app-primary);
+  --app-sidebar-item-active-bg: var(--app-secondary);
   --app-sidebar-item-active-text: hsl(0 0% 100%);
   --app-sidebar-divider: hsl(40 5% 88%);
 

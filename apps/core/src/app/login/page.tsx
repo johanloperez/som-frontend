@@ -43,8 +43,8 @@ export default function CoreLogin() {
 
   return (
     <LoginPage
-      title="Core Platform"
-      description="Sign in to manage the wholesale platform"
+      title="Plataforma Principal"
+      description="Inicie sesión para gestionar todo su negocio"
       onLogin={handleLogin}
     />
   );

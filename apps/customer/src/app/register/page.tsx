@@ -16,13 +16,9 @@ export default function RegisterPage() {
     setError("");
     try {
       const res = await api.post("/auth/register-customer", form);
-      sessionStorage.setItem("auth_user", JSON.stringify({
-        id: res.data.userId, email: res.data.email, fullName: res.data.fullName,
-        role: res.data.role, permissions: res.data.permissions ?? [],
-        portal: "customer",
-      }));
-      if (res.data.accessToken) sessionStorage.setItem("access_token", res.data.accessToken);
-      router.push("/dashboard");
+      sessionStorage.setItem("verification_email", res.data.email);
+      sessionStorage.setItem("verification_token", res.data.verificationToken);
+      router.push("/verify-email");
     } catch (e: any) { setError(e?.response?.data?.error ?? "Error al registrarse"); }
   };
 

@@ -37,8 +37,8 @@ export default function WholesalerLogin() {
 
   return (
     <LoginPage
-      title="Wholesaler Portal"
-      description="Sign in to manage your wholesale business"
+      title="Portal Mayorista"
+      description="Inicie sesión para gestionar su negocio"
       onLogin={handleLogin}
     />
   );

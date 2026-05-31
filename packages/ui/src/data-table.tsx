@@ -35,6 +35,7 @@ interface DataTableProps<TData> {
   filters?: FilterConfig[];
   pagination?: boolean;
   pageSize?: number;
+  pageSizeOptions?: number[];
 }
 
 export function DataTable<TData>({
@@ -46,6 +47,7 @@ export function DataTable<TData>({
   filters = [],
   pagination = true,
   pageSize = 10,
+  pageSizeOptions = [10, 20, 50, 100],
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -182,14 +184,17 @@ export function DataTable<TData>({
 
       {/* Paginación */}
       {pagination && (
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            Mostrando {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} a{" "}
-            {Math.min(
-              (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-              table.getFilteredRowModel().rows.length
-            )}{" "}
-            de {table.getFilteredRowModel().rows.length} resultados
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Mostrar</span>
+            <select
+              className="rounded-md border bg-background px-2 py-1 text-sm"
+              value={table.getState().pagination.pageSize}
+              onChange={(e) => table.setPageSize(Number(e.target.value))}
+            >
+              {pageSizeOptions.map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+            <span>de {table.getFilteredRowModel().rows.length}</span>
           </div>
           <div className="flex items-center gap-2">
             <button

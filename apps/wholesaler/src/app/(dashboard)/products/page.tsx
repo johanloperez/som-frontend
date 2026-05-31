@@ -55,9 +55,12 @@ export default function ProductsPage() {
   const [error, setError] = useState("");
   const [exportMsg, setExportMsg] = useState("");
   const [exportJobs, setExportJobs] = useState<{ id: string; status: string; fileSizeBytes?: number; createdAt: string }[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
 
   const [importModal, setImportModal] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
   const [importResult, setImportResult] = useState<{ created: number; errors: number; errorList: string[] } | null>(null);
   const [importError, setImportError] = useState("");
 
@@ -149,6 +152,7 @@ export default function ProductsPage() {
     if (!importFile) return;
     setImportError("");
     setImportResult(null);
+    setImportLoading(true);
     try {
       const formData = new FormData();
       formData.append("file", importFile);
@@ -159,6 +163,7 @@ export default function ProductsPage() {
       setImportFile(null);
       load();
     } catch (e: any) { setImportError(e?.response?.data?.error ?? "Error al importar"); }
+    setImportLoading(false);
   };
 
   const saveCategory = async () => {
@@ -177,6 +182,18 @@ export default function ProductsPage() {
     try { await api.delete(`${basePath}/categories/${id}`); load(); } catch {}
   };
 
+  const deleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`¿Eliminar ${selectedIds.size} productos?`)) return;
+    setDeleting(true);
+    for (const id of selectedIds) {
+      try { await api.delete(`${basePath}/products/${id}`); } catch {}
+    }
+    setSelectedIds(new Set());
+    setDeleting(false);
+    load();
+  };
+
   const openCatCreate = () => { setCatEditId(null); setCatForm({ name: "", defaultMinStock: 5 }); setCatError(""); setCatModal(true); };
   const openCatEdit = (c: CategoryConfig) => { setCatEditId(c.id); setCatForm({ name: c.name, defaultMinStock: c.defaultMinStock }); setCatError(""); setCatModal(true); };
 
@@ -184,6 +201,28 @@ export default function ProductsPage() {
   const outOfStockProducts = products.filter(p => p.stockQuantity <= 0);
 
   const columns: ColumnDef<Product>[] = [
+    {
+      id: "select", header: () => (
+        <input type="checkbox" className="accent-primary" 
+          checked={filteredProducts.length > 0 && selectedIds.size === filteredProducts.length}
+          onChange={() => {
+            if (selectedIds.size === filteredProducts.length) setSelectedIds(new Set());
+            else setSelectedIds(new Set(filteredProducts.map(p => p.id)));
+          }}
+        />
+      ),
+      cell: ({ row }) => (
+        <input type="checkbox" className="accent-primary"
+          checked={selectedIds.has(row.original.id)}
+          onChange={() => {
+            const next = new Set(selectedIds);
+            if (next.has(row.original.id)) next.delete(row.original.id);
+            else next.add(row.original.id);
+            setSelectedIds(next);
+          }}
+        />
+      ),
+    },
     {
       header: "Producto", id: "product", cell: ({ row }) => (
         <div className="flex items-center gap-3">
@@ -250,6 +289,15 @@ export default function ProductsPage() {
     },
   ];
 
+  const [stockFilter, setStockFilter] = useState("");
+  const filteredProducts = stockFilter === "low" 
+    ? products.filter(p => p.stockQuantity > 0 && p.stockQuantity <= p.minStock)
+    : stockFilter === "out" 
+    ? products.filter(p => p.stockQuantity <= 0)
+    : stockFilter === "ok"
+    ? products.filter(p => p.stockQuantity > p.minStock)
+    : products;
+
   if (loading) return <p className="p-8 text-muted-foreground">Cargando...</p>;
 
   return (
@@ -260,6 +308,17 @@ export default function ProductsPage() {
           <Button variant="outline" onClick={openCatCreate}>Categorías</Button>
           <Button variant="outline" onClick={downloadTemplate}>Template</Button>
           <Button variant="outline" onClick={() => { setImportFile(null); setImportResult(null); setImportError(""); setImportModal(true); }}>Importar</Button>
+          {selectedIds.size > 0 && (
+            <Button variant="destructive" onClick={deleteSelected} disabled={deleting}>
+              {deleting ? `Eliminando...` : `Eliminar (${selectedIds.size})`}
+            </Button>
+          )}
+          <select className="rounded-lg bg-muted/40 px-3 py-2 text-sm" value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}>
+            <option value="">Todo el stock</option>
+            <option value="ok">Stock suficiente</option>
+            <option value="low">Stock bajo</option>
+            <option value="out">Sin stock</option>
+          </select>
           {reportsEnabled ? (
             <Button variant="outline" onClick={exportStock}>Exportar CSV</Button>
           ) : (
@@ -298,13 +357,13 @@ export default function ProductsPage() {
         </Card>
       )}
 
-      {products.length === 0 ? (
+      {filteredProducts.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <p className="text-lg mb-2">No hay productos todavía</p>
           <p className="text-sm">Crea tu primer producto para comenzar a gestionar tu catálogo.</p>
         </div>
       ) : (
-        <DataTable columns={columns} data={products} filters={filters} searchable={true} pagination={true} />
+        <DataTable columns={columns} data={filteredProducts} filters={filters} searchable={true} pagination={true} />
       )}
 
       <Modal open={open} onClose={() => setOpen(false)} title={editing ? "Editar Producto" : "Nuevo Producto"} description="Complete los datos del producto.">
@@ -410,6 +469,17 @@ export default function ProductsPage() {
               if (e.target.files?.[0]) setImportFile(e.target.files[0]);
             }} />
           </div>
+          {importLoading && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                Importando productos...
+              </div>
+              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-primary rounded-full animate-pulse" style={{ width: "60%" }} />
+              </div>
+            </div>
+          )}
           {importResult && (
             <div className={`rounded-md border p-3 ${importResult.errors === 0 ? "border-green-200 bg-green-50 dark:bg-green-950" : "border-yellow-200 bg-yellow-50 dark:bg-yellow-950"}`}>
               <p className="text-sm font-medium">Resultado: {importResult.created} creados, {importResult.errors} errores</p>
@@ -423,7 +493,7 @@ export default function ProductsPage() {
           {importError && <p className="text-sm text-destructive">{importError}</p>}
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={() => setImportModal(false)}>Cancelar</Button>
-            <Button onClick={handleImport} disabled={!importFile}>Importar</Button>
+            <Button onClick={handleImport} disabled={!importFile || importLoading}>{importLoading ? "Importando..." : "Importar"}</Button>
           </div>
         </div>
       </Modal>

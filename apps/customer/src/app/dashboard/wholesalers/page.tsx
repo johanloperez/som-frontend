@@ -8,7 +8,7 @@ import { ChevronLeft, ChevronRight, Phone, Mail, Link2, Search } from "lucide-re
 interface Publication {
   id: string; title: string; description: string; photoUrls: string[];
   contactPhone?: string; contactEmail?: string; targetProvinces: string[];
-  status: string; tenantName: string; tenantSlug: string; createdAt: string;
+  status: string; tenantName: string; tenantSlug: string; tenantId: string; createdAt: string;
 }
 
 export default function WholesalersFeedPage() {
@@ -20,16 +20,24 @@ export default function WholesalersFeedPage() {
   const [codeSearch, setCodeSearch] = useState("");
   const [codeError, setCodeError] = useState("");
   const [activeImage, setActiveImage] = useState<Record<string, number>>({});
+  const [linkedTenantIds, setLinkedTenantIds] = useState<Set<string>>(new Set());
 
   const load = async () => {
     setLoading(true);
     try {
-      const [pubsRes, provRes] = await Promise.all([
+      const [pubsRes, provRes, assocRes] = await Promise.all([
         api.get("/networking/feed", { params: { search: search || undefined, province: province || undefined } }),
         api.get("/networking/provinces"),
+        api.get("/associations/my").catch(() => ({ data: [] })),
       ]);
       setPubs(pubsRes.data);
       setProvinces(provRes.data);
+      // Track linked tenant IDs to hide "Solicitar Vinculación" for already-linked wholesalers
+      setLinkedTenantIds(new Set(
+        (assocRes.data as { tenantId: string; status: string }[])
+          .filter(a => a.status === "active" || a.status === "pending")
+          .map(a => a.tenantId)
+      ));
     } catch {}
     setLoading(false);
   };
@@ -129,18 +137,20 @@ export default function WholesalersFeedPage() {
                     {p.contactEmail && <span className="flex items-center gap-1"><Mail size={14} /> {p.contactEmail}</span>}
                   </div>
 
-                  <Button className="w-full" onClick={async () => {
-                    try {
-                      const res = await api.get(`/directory/wholesalers?search=${p.tenantSlug}`);
-                      const tenant = res.data.find((t: any) => t.slug === p.tenantSlug);
-                      if (tenant) {
-                        await api.post("/associations/requests", { tenantId: tenant.tenantId, message: "Me interesa tu publicación", shareProfile: true, shareCreditScore: false, shareContactData: true });
+                  {linkedTenantIds.has(p.tenantId) ? (
+                    <Button className="w-full" disabled>
+                      <Link2 size={16} className="mr-2" /> Ya vinculado
+                    </Button>
+                  ) : (
+                    <Button className="w-full" onClick={async () => {
+                      try {
+                        await api.post("/associations/requests", { tenantId: p.tenantId, message: "Me interesa tu publicación", shareProfile: true, shareCreditScore: false, shareContactData: true });
                         alert("¡Solicitud enviada! El mayorista te responderá pronto.");
-                      }
-                    } catch (e: any) { alert(e?.response?.data?.error ?? "Error al enviar solicitud"); }
-                  }}>
+                      } catch (e: any) { alert(e?.response?.data?.error ?? "Error al enviar solicitud"); }
+                    }}>
                     <Link2 size={16} className="mr-2" /> Solicitar Vinculación
                   </Button>
+                  )}
                 </div>
               </Card>
             );

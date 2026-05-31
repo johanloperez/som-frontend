@@ -9,28 +9,61 @@ export default function CustomerLogin() {
     const data = res.data as { userId: string; email: string; fullName: string; role: string; permissions: string[]; accessToken: string; expiresAt: string; portal?: string };
 
     sessionStorage.setItem("auth_user", JSON.stringify({
-      id: data.userId,
-      email: data.email,
-      fullName: data.fullName,
-      role: data.role,
-      permissions: data.permissions,
+      id: data.userId, email: data.email, fullName: data.fullName,
+      role: data.role, permissions: data.permissions,
       portal: data.portal ?? "customer",
     }));
-    if (data.accessToken) {
-      sessionStorage.setItem("access_token", data.accessToken);
-    }
+    if (data.accessToken) sessionStorage.setItem("access_token", data.accessToken);
 
     if (data.portal && data.portal !== "customer") {
-      window.location.href = `http://localhost:3000/login`;
+      window.location.href = "http://localhost:3000/login";
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    if (typeof window === "undefined" || !(window as any).google) {
+      alert("Google Sign-In no está disponible. Usa email y contraseña.");
       return;
     }
+
+    const client = (window as any).google.accounts.oauth2.initTokenClient({
+      client_id: "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
+      scope: "email profile openid",
+      callback: async (response: any) => {
+        if (response.access_token) {
+          try {
+            // Get user info from Google
+            const userRes = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo`, {
+              headers: { Authorization: `Bearer ${response.access_token}` }
+            });
+            const googleUser = await userRes.json();
+
+            // Send to backend
+            const res = await api.post("/auth/google-login", { credential: response.access_token, email: googleUser.email, name: googleUser.name, sub: googleUser.sub });
+            const data = res.data as any;
+            sessionStorage.setItem("auth_user", JSON.stringify({
+              id: data.userId, email: data.email, fullName: data.fullName,
+              role: data.role, permissions: data.permissions ?? [],
+              portal: data.portal ?? "customer",
+            }));
+            if (data.accessToken) sessionStorage.setItem("access_token", data.accessToken);
+            window.location.href = "/dashboard";
+          } catch (e: any) { alert("Error al iniciar con Google: " + (e?.response?.data?.error ?? "Intenta de nuevo")); }
+        }
+      },
+    });
+    client.requestAccessToken();
   };
 
   return (
     <LoginPage
-      title="Customer Portal"
-      description="Sign in to discover wholesale opportunities"
+      title="Portal Minorista"
+      description="Gestiona tus pedidos y proveedores"
       onLogin={handleLogin}
+      showRegister={true}
+      registerUrl="/register"
+      showGoogleLogin={true}
+      onGoogleLogin={handleGoogleLogin}
     />
   );
 }
