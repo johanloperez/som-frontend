@@ -16,9 +16,9 @@ interface LoginPageProps {
 }
 
 const PORTAL_URLS: Record<string, string> = {
-  core: "http://localhost:3000",
-  wholesaler: "http://localhost:3001",
-  customer: "http://localhost:3002",
+  core: "https://som-core.azurewebsites.net",
+  wholesaler: "https://som-wholesaler.azurewebsites.net",
+  customer: "https://som-customer.azurewebsites.net",
 };
 
 export function LoginPage({ title, description, onLogin, showRegister, registerUrl, showGoogleLogin, onGoogleLogin }: LoginPageProps) {

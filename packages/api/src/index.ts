@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api/v1";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "https://wholesale-platform-api-bkdxfzcjhwb8bef3.spaincentral-01.azurewebsites.net/api/v1";
 
 export function createClient(config?: AxiosRequestConfig): AxiosInstance {
   const client = axios.create({

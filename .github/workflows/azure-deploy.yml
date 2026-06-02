@@ -1,0 +1,117 @@
+name: Deploy Frontend to Azure
+
+on:
+  push:
+    branches: [main, master]
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build-and-deploy-core:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_API_URL: https://wholesale-platform-api-bkdxfzcjhwb8bef3.spaincentral-01.azurewebsites.net/api/v1
+      NEXT_PUBLIC_PORTAL: core
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx turbo build --filter=@repo/core-web
+
+      - run: |
+          cp -r apps/core/.next/static apps/core/.next/standalone/.next/static
+          if (Test-Path apps/core/public) { cp -r apps/core/public apps/core/.next/standalone/public }
+          Compress-Archive -Path apps/core/.next/standalone/* -DestinationPath ${{ runner.temp }}/core.zip
+        shell: pwsh
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: som-core
+          package: ${{ runner.temp }}/core.zip
+
+  build-and-deploy-wholesaler:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_API_URL: https://wholesale-platform-api-bkdxfzcjhwb8bef3.spaincentral-01.azurewebsites.net/api/v1
+      NEXT_PUBLIC_PORTAL: wholesaler
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx turbo build --filter=@repo/wholesaler-web
+
+      - run: |
+          cp -r apps/wholesaler/.next/static apps/wholesaler/.next/standalone/.next/static
+          if (Test-Path apps/wholesaler/public) { cp -r apps/wholesaler/public apps/wholesaler/.next/standalone/public }
+          Compress-Archive -Path apps/wholesaler/.next/standalone/* -DestinationPath ${{ runner.temp }}/wholesaler.zip
+        shell: pwsh
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: som-wholesaler
+          package: ${{ runner.temp }}/wholesaler.zip
+
+  build-and-deploy-customer:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_API_URL: https://wholesale-platform-api-bkdxfzcjhwb8bef3.spaincentral-01.azurewebsites.net/api/v1
+      NEXT_PUBLIC_PORTAL: customer
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx turbo build --filter=@repo/customer-web
+
+      - run: |
+          cp -r apps/customer/.next/static apps/customer/.next/standalone/.next/static
+          if (Test-Path apps/customer/public) { cp -r apps/customer/public apps/customer/.next/standalone/public }
+          Compress-Archive -Path apps/customer/.next/standalone/* -DestinationPath ${{ runner.temp }}/customer.zip
+        shell: pwsh
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: som-customer
+          package: ${{ runner.temp }}/customer.zip
