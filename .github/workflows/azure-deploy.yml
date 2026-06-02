@@ -26,6 +26,8 @@ jobs:
 
       - run: npm ci
 
+      - run: npx turbo run generate:types
+
       - run: npx turbo build --filter=core-web
 
       - run: |
@@ -61,6 +63,8 @@ jobs:
 
       - run: npm ci
 
+      - run: npx turbo run generate:types
+
       - run: npx turbo build --filter=wholesaler-web
 
       - run: |
@@ -95,6 +99,8 @@ jobs:
           cache: npm
 
       - run: npm ci
+
+      - run: npx turbo run generate:types
 
       - run: npx turbo build --filter=customer-web
 
