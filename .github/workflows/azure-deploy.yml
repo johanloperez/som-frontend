@@ -31,6 +31,7 @@ jobs:
       - run: npx turbo build --filter=core-web
 
       - run: |
+          New-Item -ItemType Directory -Force -Path apps/core/.next/standalone/.next | Out-Null
           cp -r apps/core/.next/static apps/core/.next/standalone/.next/static
           if (Test-Path apps/core/public) { cp -r apps/core/public apps/core/.next/standalone/public }
           Compress-Archive -Path apps/core/.next/standalone/* -DestinationPath ${{ runner.temp }}/core.zip
@@ -68,6 +69,7 @@ jobs:
       - run: npx turbo build --filter=wholesaler-web
 
       - run: |
+          New-Item -ItemType Directory -Force -Path apps/wholesaler/.next/standalone/.next | Out-Null
           cp -r apps/wholesaler/.next/static apps/wholesaler/.next/standalone/.next/static
           if (Test-Path apps/wholesaler/public) { cp -r apps/wholesaler/public apps/wholesaler/.next/standalone/public }
           Compress-Archive -Path apps/wholesaler/.next/standalone/* -DestinationPath ${{ runner.temp }}/wholesaler.zip
@@ -105,6 +107,7 @@ jobs:
       - run: npx turbo build --filter=customer-web
 
       - run: |
+          New-Item -ItemType Directory -Force -Path apps/customer/.next/standalone/.next | Out-Null
           cp -r apps/customer/.next/static apps/customer/.next/standalone/.next/static
           if (Test-Path apps/customer/public) { cp -r apps/customer/public apps/customer/.next/standalone/public }
           Compress-Archive -Path apps/customer/.next/standalone/* -DestinationPath ${{ runner.temp }}/customer.zip
