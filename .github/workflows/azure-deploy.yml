@@ -48,11 +48,9 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - uses: azure/webapps-deploy@v3
-        with:
-          app-name: som-core
-          resource-group-name: som-core_group
-          package: ${{ runner.temp }}/core.zip
+      - run: |
+          az webapp deploy --resource-group som-core_group --name som-core --src-path ${{ runner.temp }}/core.zip --type zip
+        shell: bash
 
   build-and-deploy-wholesaler:
     runs-on: ubuntu-latest
@@ -87,11 +85,9 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - uses: azure/webapps-deploy@v3
-        with:
-          app-name: som-wholesaler
-          resource-group-name: som-wholesaler_group
-          package: ${{ runner.temp }}/wholesaler.zip
+      - run: |
+          az webapp deploy --resource-group som-wholesaler_group --name som-wholesaler --src-path ${{ runner.temp }}/wholesaler.zip --type zip
+        shell: bash
 
   build-and-deploy-customer:
     runs-on: ubuntu-latest
@@ -126,8 +122,6 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - uses: azure/webapps-deploy@v3
-        with:
-          app-name: som-customer
-          resource-group-name: som-customer_group
-          package: ${{ runner.temp }}/customer.zip
+      - run: |
+          az webapp deploy --resource-group som-customer_group --name som-customer --src-path ${{ runner.temp }}/customer.zip --type zip
+        shell: bash
