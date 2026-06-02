@@ -382,7 +382,7 @@ export default function BillingPage() {
                setUploadSuccess("");
              }}>Cancelar</Button>
              <Button 
-               disabled={!uploadReceipt || uploadingInvoiceId === null || uploadSuccess}
+               disabled={!uploadReceipt || uploadingInvoiceId === null || !!uploadSuccess}
                onClick={handleUploadReceipt}
              >
                {uploadSuccess ? "Subido" : "Subir Comprobante"}
