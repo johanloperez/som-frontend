@@ -3,7 +3,7 @@ export { cn } from "./cn";
 export { AuthProvider, useAuth } from "./auth-context";
 export { LoginPage } from "./login-page";
 export { Card, CardHeader, CardTitle, CardDescription, CardContent } from "./card";
-export { Badge, badgeVariants } from "./badge";
+export { Badge } from "./badge";
 export { Input } from "./input";
 export { Modal } from "./modal";
 export { DataTable, type FilterConfig, type FilterOption } from "./data-table";
