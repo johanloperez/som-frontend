@@ -26,7 +26,7 @@ jobs:
 
       - run: npm ci
 
-      - run: npx turbo build --filter=@repo/core-web
+      - run: npx turbo build --filter=core-web
 
       - run: |
           cp -r apps/core/.next/static apps/core/.next/standalone/.next/static
@@ -61,7 +61,7 @@ jobs:
 
       - run: npm ci
 
-      - run: npx turbo build --filter=@repo/wholesaler-web
+      - run: npx turbo build --filter=wholesaler-web
 
       - run: |
           cp -r apps/wholesaler/.next/static apps/wholesaler/.next/standalone/.next/static
@@ -96,7 +96,7 @@ jobs:
 
       - run: npm ci
 
-      - run: npx turbo build --filter=@repo/customer-web
+      - run: npx turbo build --filter=customer-web
 
       - run: |
           cp -r apps/customer/.next/static apps/customer/.next/standalone/.next/static
