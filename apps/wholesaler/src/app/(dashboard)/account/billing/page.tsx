@@ -77,7 +77,7 @@ export default function BillingPage() {
        const url = window.URL.createObjectURL(new Blob([res.data]));
        const link = document.createElement("a");
        link.href = url;
-       link.setAttribute("download", `comprobante-${invoiceId}.${res.headers["content-type"]?.includes("pdf") ? "pdf" : "jpg"}`);
+       link.setAttribute("download", `comprobante-${invoiceId}.${String(res.headers["content-type"] ?? "").includes("pdf") ? "pdf" : "jpg"}`);
        document.body.appendChild(link);
        link.click();
        link.remove();

@@ -44,7 +44,7 @@ export default function CreateOrderPage() {
     if (!slug) return;
     try {
       const res = await api.get(`${basePath}/products`);
-      setProducts(res.data.filter((p: Product) => p.status === "active"));
+      setProducts(res.data.filter((p: any) => p.status === "active"));
     } catch {}
     setLoading(false);
   };
