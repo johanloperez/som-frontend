@@ -51,6 +51,7 @@ jobs:
       - uses: azure/webapps-deploy@v3
         with:
           app-name: som-core
+          resource-group-name: som-core_group
           package: ${{ runner.temp }}/core.zip
 
   build-and-deploy-wholesaler:
@@ -89,6 +90,7 @@ jobs:
       - uses: azure/webapps-deploy@v3
         with:
           app-name: som-wholesaler
+          resource-group-name: som-wholesaler_group
           package: ${{ runner.temp }}/wholesaler.zip
 
   build-and-deploy-customer:
@@ -127,4 +129,5 @@ jobs:
       - uses: azure/webapps-deploy@v3
         with:
           app-name: som-customer
+          resource-group-name: som-customer_group
           package: ${{ runner.temp }}/customer.zip
