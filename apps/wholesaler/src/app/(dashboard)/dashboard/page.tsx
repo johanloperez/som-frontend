@@ -63,9 +63,9 @@ export default function DashboardPage() {
         api.get(`${basePath}/products`).catch(() => ({ data: [] as any[] })),
       ]);
 
-      const customers: Customer[] = custRes.data;
-      const requests: Request[] = reqRes.data;
-      const products: Product[] = prodRes.data;
+      const customers: any[] = custRes.data;
+      const requests: any[] = reqRes.data;
+      const products: any[] = prodRes.data;
 
       setData({
         totalCustomers: customers.length,
