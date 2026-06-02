@@ -137,14 +137,14 @@ export default function BillingPage() {
   if (loading) return <p>Cargando...</p>;
 
   const invoiceColumns: any[] = [
-    { header: "N° Factura", accessorKey: "invoiceNumber", cell: ({ getValue }) => <span className="font-mono text-xs">{getValue() || "—"}</span> },
-    { header: "Período", id: "period", cell: ({ row }) => `${new Date(row.original.periodStart).toLocaleDateString()} — ${new Date(row.original.periodEnd).toLocaleDateString()}` },
-    { header: "Monto", accessorKey: "totalAmount", cell: ({ getValue }) => `$${getValue()}` },
-    { header: "Vencimiento", accessorKey: "dueDate", cell: ({ getValue }) => new Date(getValue() as string).toLocaleDateString() },
+    { header: "N° Factura", accessorKey: "invoiceNumber", cell: ({ getValue }: any) => <span className="font-mono text-xs">{getValue() || "—"}</span> },
+    { header: "Período", id: "period", cell: ({ row }: any) => `${new Date(row.original.periodStart).toLocaleDateString()} — ${new Date(row.original.periodEnd).toLocaleDateString()}` },
+    { header: "Monto", accessorKey: "totalAmount", cell: ({ getValue }: any) => `$${getValue()}` },
+    { header: "Vencimiento", accessorKey: "dueDate", cell: ({ getValue }: any) => new Date(getValue() as string).toLocaleDateString() },
     {
       header: "Estado",
       accessorKey: "status",
-      cell: ({ getValue }) => {
+      cell: ({ getValue }: any) => {
         const v = getValue() as string;
         return <Badge variant={v === "paid" ? "success" : v === "overdue" ? "destructive" : "warning"}>{v}</Badge>;
       },
@@ -157,7 +157,7 @@ export default function BillingPage() {
     {
       header: "Comprobante",
       id: "receipt",
-      cell: ({ row }) => {
+      cell: ({ row }: any) => {
         const inv = row.original;
         if (inv.status === "pending") {
           return (
