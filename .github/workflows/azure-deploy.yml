@@ -49,7 +49,7 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - run: |
-          az webapp deploy --resource-group som-core_group --name som-core --src-path ${{ runner.temp }}/core.zip --type zip
+          az webapp deploy --resource-group wholesale-platform-api_group --name som-core --src-path ${{ runner.temp }}/core.zip --type zip
         shell: bash
 
   build-and-deploy-wholesaler:
@@ -86,7 +86,7 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - run: |
-          az webapp deploy --resource-group som-wholesaler_group --name som-wholesaler --src-path ${{ runner.temp }}/wholesaler.zip --type zip
+          az webapp deploy --resource-group wholesale-platform-api_group --name som-wholesaler --src-path ${{ runner.temp }}/wholesaler.zip --type zip
         shell: bash
 
   build-and-deploy-customer:
@@ -123,5 +123,5 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - run: |
-          az webapp deploy --resource-group som-customer_group --name som-customer --src-path ${{ runner.temp }}/customer.zip --type zip
+          az webapp deploy --resource-group wholesale-platform-api_group --name som-customer --src-path ${{ runner.temp }}/customer.zip --type zip
         shell: bash
