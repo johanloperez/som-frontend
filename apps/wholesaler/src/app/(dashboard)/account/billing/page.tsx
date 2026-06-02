@@ -136,7 +136,7 @@ export default function BillingPage() {
 
   if (loading) return <p>Cargando...</p>;
 
-  const invoiceColumns = [
+  const invoiceColumns: any[] = [
     { header: "N° Factura", accessorKey: "invoiceNumber", cell: ({ getValue }) => <span className="font-mono text-xs">{getValue() || "—"}</span> },
     { header: "Período", id: "period", cell: ({ row }) => `${new Date(row.original.periodStart).toLocaleDateString()} — ${new Date(row.original.periodEnd).toLocaleDateString()}` },
     { header: "Monto", accessorKey: "totalAmount", cell: ({ getValue }) => `$${getValue()}` },
@@ -186,7 +186,7 @@ export default function BillingPage() {
         return <span className="text-xs text-muted-foreground">Sin comprobante</span>;
       },
     },
-  ] as ColumnDef<Invoice>[];
+  ];
 
   const invoiceFilters: FilterConfig[] = [
     {
