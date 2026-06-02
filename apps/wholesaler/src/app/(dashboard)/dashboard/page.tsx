@@ -58,9 +58,9 @@ export default function DashboardPage() {
     setLoading(true);
     try {
       const [custRes, reqRes, prodRes] = await Promise.all([
-        api.get(`${basePath}/customers`).catch(() => ({ data: [] as any[] })),
-        api.get(`${basePath}/associations/requests`).catch(() => ({ data: [] as any[] })),
-        api.get(`${basePath}/products`).catch(() => ({ data: [] as any[] })),
+        api.get(`${basePath}/customers`).catch(() => ({ data: [] as Customer[] })),
+        api.get(`${basePath}/associations/requests`).catch(() => ({ data: [] as Request[] })),
+        api.get(`${basePath}/products`).catch(() => ({ data: [] as Product[] })),
       ]);
 
       const customers: Customer[] = custRes.data;
