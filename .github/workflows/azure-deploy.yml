@@ -37,6 +37,7 @@ jobs:
       - run: |
           $app = "core"
           $standalone = "apps/$app/.next/standalone"
+          Remove-Item -Force "$standalone/package.json" -ErrorAction SilentlyContinue
           $items = Get-ChildItem -Path "$standalone/apps/$app"
           if ($items) { $items | Move-Item -Destination "$standalone" }
           Remove-Item -Recurse -Force "$standalone/apps" -ErrorAction SilentlyContinue
@@ -112,6 +113,7 @@ jobs:
       - run: |
           $app = "wholesaler"
           $standalone = "apps/$app/.next/standalone"
+          Remove-Item -Force "$standalone/package.json" -ErrorAction SilentlyContinue
           $items = Get-ChildItem -Path "$standalone/apps/$app"
           if ($items) { $items | Move-Item -Destination "$standalone" }
           Remove-Item -Recurse -Force "$standalone/apps" -ErrorAction SilentlyContinue
@@ -187,6 +189,7 @@ jobs:
       - run: |
           $app = "customer"
           $standalone = "apps/$app/.next/standalone"
+          Remove-Item -Force "$standalone/package.json" -ErrorAction SilentlyContinue
           $items = Get-ChildItem -Path "$standalone/apps/$app"
           if ($items) { $items | Move-Item -Destination "$standalone" }
           Remove-Item -Recurse -Force "$standalone/apps" -ErrorAction SilentlyContinue
