@@ -37,14 +37,15 @@ jobs:
       - run: |
           $app = "core"
           $standalone = "apps/$app/.next/standalone"
-          $deployDir = "${{ runner.temp }}/deploy-$app"
-          Remove-Item -Recurse -Force "$deployDir" -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Force -Path "$deployDir" | Out-Null
-          Copy-Item -Recurse -Path "$standalone/apps/$app/*" -Destination "$deployDir"
-          Copy-Item -Recurse -Path "$standalone/node_modules" -Destination "$deployDir/node_modules"
-          if (Test-Path "apps/$app/.next/static") { Copy-Item -Recurse -Path "apps/$app/.next/static" -Destination "$deployDir/.next/static" }
-          if (Test-Path "apps/$app/public") { Copy-Item -Recurse -Path "apps/$app/public" -Destination "$deployDir/public" }
-          Set-Content -Path "$deployDir/web.config" -Value @"
+          $items = Get-ChildItem -Path "$standalone/apps/$app"
+          if ($items) { $items | Move-Item -Destination "$standalone" }
+          Remove-Item -Recurse -Force "$standalone/apps" -ErrorAction SilentlyContinue
+          if (Test-Path "apps/$app/.next/static") {
+            New-Item -ItemType Directory -Force -Path "$standalone/.next" | Out-Null
+            Copy-Item -Recurse -Path "apps/$app/.next/static" -Destination "$standalone/.next/static"
+          }
+          if (Test-Path "apps/$app/public") { Copy-Item -Recurse -Path "apps/$app/public" -Destination "$standalone/public" }
+          Set-Content -Path "$standalone/web.config" -Value @"
           <?xml version="1.0" encoding="utf-8"?>
           <configuration>
             <system.webServer>
@@ -73,7 +74,7 @@ jobs:
             </system.webServer>
           </configuration>
           "@
-          Compress-Archive -Path "$deployDir/*" -DestinationPath ${{ runner.temp }}/$app.zip
+          Compress-Archive -Path "$standalone/*" -DestinationPath ${{ runner.temp }}/$app.zip
         shell: pwsh
 
       - name: Azure login (OIDC)
@@ -111,14 +112,15 @@ jobs:
       - run: |
           $app = "wholesaler"
           $standalone = "apps/$app/.next/standalone"
-          $deployDir = "${{ runner.temp }}/deploy-$app"
-          Remove-Item -Recurse -Force "$deployDir" -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Force -Path "$deployDir" | Out-Null
-          Copy-Item -Recurse -Path "$standalone/apps/$app/*" -Destination "$deployDir"
-          Copy-Item -Recurse -Path "$standalone/node_modules" -Destination "$deployDir/node_modules"
-          if (Test-Path "apps/$app/.next/static") { Copy-Item -Recurse -Path "apps/$app/.next/static" -Destination "$deployDir/.next/static" }
-          if (Test-Path "apps/$app/public") { Copy-Item -Recurse -Path "apps/$app/public" -Destination "$deployDir/public" }
-          Set-Content -Path "$deployDir/web.config" -Value @"
+          $items = Get-ChildItem -Path "$standalone/apps/$app"
+          if ($items) { $items | Move-Item -Destination "$standalone" }
+          Remove-Item -Recurse -Force "$standalone/apps" -ErrorAction SilentlyContinue
+          if (Test-Path "apps/$app/.next/static") {
+            New-Item -ItemType Directory -Force -Path "$standalone/.next" | Out-Null
+            Copy-Item -Recurse -Path "apps/$app/.next/static" -Destination "$standalone/.next/static"
+          }
+          if (Test-Path "apps/$app/public") { Copy-Item -Recurse -Path "apps/$app/public" -Destination "$standalone/public" }
+          Set-Content -Path "$standalone/web.config" -Value @"
           <?xml version="1.0" encoding="utf-8"?>
           <configuration>
             <system.webServer>
@@ -147,7 +149,7 @@ jobs:
             </system.webServer>
           </configuration>
           "@
-          Compress-Archive -Path "$deployDir/*" -DestinationPath ${{ runner.temp }}/$app.zip
+          Compress-Archive -Path "$standalone/*" -DestinationPath ${{ runner.temp }}/$app.zip
         shell: pwsh
 
       - name: Azure login (OIDC)
@@ -185,14 +187,15 @@ jobs:
       - run: |
           $app = "customer"
           $standalone = "apps/$app/.next/standalone"
-          $deployDir = "${{ runner.temp }}/deploy-$app"
-          Remove-Item -Recurse -Force "$deployDir" -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Force -Path "$deployDir" | Out-Null
-          Copy-Item -Recurse -Path "$standalone/apps/$app/*" -Destination "$deployDir"
-          Copy-Item -Recurse -Path "$standalone/node_modules" -Destination "$deployDir/node_modules"
-          if (Test-Path "apps/$app/.next/static") { Copy-Item -Recurse -Path "apps/$app/.next/static" -Destination "$deployDir/.next/static" }
-          if (Test-Path "apps/$app/public") { Copy-Item -Recurse -Path "apps/$app/public" -Destination "$deployDir/public" }
-          Set-Content -Path "$deployDir/web.config" -Value @"
+          $items = Get-ChildItem -Path "$standalone/apps/$app"
+          if ($items) { $items | Move-Item -Destination "$standalone" }
+          Remove-Item -Recurse -Force "$standalone/apps" -ErrorAction SilentlyContinue
+          if (Test-Path "apps/$app/.next/static") {
+            New-Item -ItemType Directory -Force -Path "$standalone/.next" | Out-Null
+            Copy-Item -Recurse -Path "apps/$app/.next/static" -Destination "$standalone/.next/static"
+          }
+          if (Test-Path "apps/$app/public") { Copy-Item -Recurse -Path "apps/$app/public" -Destination "$standalone/public" }
+          Set-Content -Path "$standalone/web.config" -Value @"
           <?xml version="1.0" encoding="utf-8"?>
           <configuration>
             <system.webServer>
@@ -221,7 +224,7 @@ jobs:
             </system.webServer>
           </configuration>
           "@
-          Compress-Archive -Path "$deployDir/*" -DestinationPath ${{ runner.temp }}/$app.zip
+          Compress-Archive -Path "$standalone/*" -DestinationPath ${{ runner.temp }}/$app.zip
         shell: pwsh
 
       - name: Azure login (OIDC)
