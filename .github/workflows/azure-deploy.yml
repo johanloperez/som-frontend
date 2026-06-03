@@ -35,16 +35,19 @@ jobs:
       - run: npx turbo build --filter=core-web
 
       - run: |
-          New-Item -ItemType Directory -Force -Path apps/core/.next/standalone/.next | Out-Null
-          cp -r apps/core/.next/static apps/core/.next/standalone/.next/static
-          if (Test-Path apps/core/public) { cp -r apps/core/public apps/core/.next/standalone/public }
-          Set-Content -Path apps/core/.next/standalone/web.config -Value @"
+          $app = "core"
+          $standalone = "apps/$app/.next/standalone"
+          $appDir = "$standalone/apps/$app"
+          New-Item -ItemType Directory -Force -Path "$appDir/.next" | Out-Null
+          if (Test-Path "apps/$app/.next/static") { Copy-Item -Recurse -Path "apps/$app/.next/static" -Destination "$appDir/.next/static" }
+          if (Test-Path "apps/$app/public") { Copy-Item -Recurse -Path "apps/$app/public" -Destination "$appDir/public" }
+          Set-Content -Path "$standalone/web.config" -Value @"
           <?xml version="1.0" encoding="utf-8"?>
           <configuration>
             <system.webServer>
               <webSocket enabled="false" />
               <handlers>
-                <add name="iisnode" path="server.js" verb="*" modules="iisnode" />
+                <add name="iisnode" path="apps/$app/server.js" verb="*" modules="iisnode" />
               </handlers>
               <rewrite>
                 <rules>
@@ -60,14 +63,14 @@ jobs:
                     <conditions logicalGrouping="MatchAll">
                       <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
                     </conditions>
-                    <action type="Rewrite" url="server.js" />
+                    <action type="Rewrite" url="apps/$app/server.js" />
                   </rule>
                 </rules>
               </rewrite>
             </system.webServer>
           </configuration>
           "@
-          Compress-Archive -Path apps/core/.next/standalone/* -DestinationPath ${{ runner.temp }}/core.zip
+          Compress-Archive -Path "$standalone/*" -DestinationPath ${{ runner.temp }}/$app.zip
         shell: pwsh
 
       - name: Azure login (OIDC)
@@ -102,16 +105,19 @@ jobs:
       - run: npx turbo build --filter=wholesaler-web
 
       - run: |
-          New-Item -ItemType Directory -Force -Path apps/wholesaler/.next/standalone/.next | Out-Null
-          cp -r apps/wholesaler/.next/static apps/wholesaler/.next/standalone/.next/static
-          if (Test-Path apps/wholesaler/public) { cp -r apps/wholesaler/public apps/wholesaler/.next/standalone/public }
-          Set-Content -Path apps/wholesaler/.next/standalone/web.config -Value @"
+          $app = "wholesaler"
+          $standalone = "apps/$app/.next/standalone"
+          $appDir = "$standalone/apps/$app"
+          New-Item -ItemType Directory -Force -Path "$appDir/.next" | Out-Null
+          if (Test-Path "apps/$app/.next/static") { Copy-Item -Recurse -Path "apps/$app/.next/static" -Destination "$appDir/.next/static" }
+          if (Test-Path "apps/$app/public") { Copy-Item -Recurse -Path "apps/$app/public" -Destination "$appDir/public" }
+          Set-Content -Path "$standalone/web.config" -Value @"
           <?xml version="1.0" encoding="utf-8"?>
           <configuration>
             <system.webServer>
               <webSocket enabled="false" />
               <handlers>
-                <add name="iisnode" path="server.js" verb="*" modules="iisnode" />
+                <add name="iisnode" path="apps/$app/server.js" verb="*" modules="iisnode" />
               </handlers>
               <rewrite>
                 <rules>
@@ -127,14 +133,14 @@ jobs:
                     <conditions logicalGrouping="MatchAll">
                       <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
                     </conditions>
-                    <action type="Rewrite" url="server.js" />
+                    <action type="Rewrite" url="apps/$app/server.js" />
                   </rule>
                 </rules>
               </rewrite>
             </system.webServer>
           </configuration>
           "@
-          Compress-Archive -Path apps/wholesaler/.next/standalone/* -DestinationPath ${{ runner.temp }}/wholesaler.zip
+          Compress-Archive -Path "$standalone/*" -DestinationPath ${{ runner.temp }}/$app.zip
         shell: pwsh
 
       - name: Azure login (OIDC)
@@ -169,16 +175,19 @@ jobs:
       - run: npx turbo build --filter=customer-web
 
       - run: |
-          New-Item -ItemType Directory -Force -Path apps/customer/.next/standalone/.next | Out-Null
-          cp -r apps/customer/.next/static apps/customer/.next/standalone/.next/static
-          if (Test-Path apps/customer/public) { cp -r apps/customer/public apps/customer/.next/standalone/public }
-          Set-Content -Path apps/customer/.next/standalone/web.config -Value @"
+          $app = "customer"
+          $standalone = "apps/$app/.next/standalone"
+          $appDir = "$standalone/apps/$app"
+          New-Item -ItemType Directory -Force -Path "$appDir/.next" | Out-Null
+          if (Test-Path "apps/$app/.next/static") { Copy-Item -Recurse -Path "apps/$app/.next/static" -Destination "$appDir/.next/static" }
+          if (Test-Path "apps/$app/public") { Copy-Item -Recurse -Path "apps/$app/public" -Destination "$appDir/public" }
+          Set-Content -Path "$standalone/web.config" -Value @"
           <?xml version="1.0" encoding="utf-8"?>
           <configuration>
             <system.webServer>
               <webSocket enabled="false" />
               <handlers>
-                <add name="iisnode" path="server.js" verb="*" modules="iisnode" />
+                <add name="iisnode" path="apps/$app/server.js" verb="*" modules="iisnode" />
               </handlers>
               <rewrite>
                 <rules>
@@ -194,14 +203,14 @@ jobs:
                     <conditions logicalGrouping="MatchAll">
                       <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
                     </conditions>
-                    <action type="Rewrite" url="server.js" />
+                    <action type="Rewrite" url="apps/$app/server.js" />
                   </rule>
                 </rules>
               </rewrite>
             </system.webServer>
           </configuration>
           "@
-          Compress-Archive -Path apps/customer/.next/standalone/* -DestinationPath ${{ runner.temp }}/customer.zip
+          Compress-Archive -Path "$standalone/*" -DestinationPath ${{ runner.temp }}/$app.zip
         shell: pwsh
 
       - name: Azure login (OIDC)
