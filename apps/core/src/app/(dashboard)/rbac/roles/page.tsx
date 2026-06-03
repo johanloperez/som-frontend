@@ -14,9 +14,10 @@ interface Role {
 
 export default function RolesPage() {
   const [roles, setRoles] = useState<Role[]>([]);
-  const [resources, setResources] = useState<{ id: string; code: string; group: string }[]>([]);
+  const [resources, setResources] = useState<{ id: string; code: string; group: string; description?: string }[]>([]);
   const [open, setOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [pendingRoleId, setPendingRoleId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [error, setError] = useState("");
 
@@ -25,6 +26,10 @@ export default function RolesPage() {
       const [r, res] = await Promise.all([api.get("/platform/roles"), api.get("/platform/resources")]);
       setRoles(r.data);
       setResources(res.data);
+      if (pendingRoleId) {
+        const updated = r.data.find((role: Role) => role.id === pendingRoleId);
+        if (updated) setSelectedRole(updated);
+      }
     } catch { }
   };
 
@@ -46,6 +51,7 @@ export default function RolesPage() {
     const ids = has
       ? (role?.permissions ?? []).filter((p) => p.id !== resourceId).map((p) => p.id)
       : [...(role?.permissions ?? []).map((p) => p.id), resourceId];
+    setPendingRoleId(roleId);
     try { await api.put(`/platform/roles/${roleId}/permissions`, { resourceIds: ids }); load(); } catch { }
   };
 
@@ -97,20 +103,33 @@ export default function RolesPage() {
         </div>
       </Modal>
 
-      <Modal open={!!selectedRole} onClose={() => setSelectedRole(null)} title={`Permisos: ${selectedRole?.name}`}>
-        <div className="max-h-96 overflow-y-auto space-y-1">
-          {resources.map((res) => {
-            const has = selectedRole?.permissions?.some((p) => p.id === res.id);
-            return (
-              <label key={res.id} className="flex items-center gap-3 p-2 rounded hover:bg-muted cursor-pointer">
-                <input type="checkbox" checked={!!has} onChange={() => togglePermission(selectedRole!.id, res.id)} className="h-4 w-4" />
-                <div>
-                  <p className="text-sm font-medium">{res.code}</p>
-                  <p className="text-xs text-muted-foreground">{res.group}</p>
-                </div>
-              </label>
-            );
-          })}
+      <Modal open={!!selectedRole} onClose={() => { setSelectedRole(null); setPendingRoleId(null); }} title={`Permisos: ${selectedRole?.name}`}>
+        <div className="max-h-96 overflow-y-auto space-y-4">
+          {Object.entries(
+            resources.reduce<Record<string, typeof resources>>((acc, r) => {
+              const g = r.group || "Sin grupo";
+              if (!acc[g]) acc[g] = [];
+              acc[g].push(r);
+              return acc;
+            }, {})
+          ).map(([group, perms]) => (
+            <div key={group}>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1 px-2">{group}</p>
+              {perms.map((res) => {
+                const role = selectedRole;
+                const has = role ? roles.find((r) => r.id === role.id)?.permissions?.some((p) => p.id === res.id) ?? false : false;
+                return (
+                  <label key={res.id} className="flex items-center gap-3 p-2 rounded hover:bg-muted cursor-pointer">
+                    <input type="checkbox" checked={has} onChange={() => togglePermission(role!.id, res.id)} className="h-4 w-4" />
+                    <div>
+                      <p className="text-sm font-medium">{res.description || res.code}</p>
+                      <p className="text-xs text-muted-foreground">{res.code}</p>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          ))}
         </div>
       </Modal>
     </div>
