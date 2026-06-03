@@ -85,6 +85,7 @@ jobs:
 
       - run: |
           az webapp config appsettings set --resource-group wholesale-platform-api_group --name som-core --settings WEBSITE_NODE_DEFAULT_VERSION=~20 SCM_DO_BUILD_DURING_DEPLOYMENT=false
+          az webapp restart --resource-group wholesale-platform-api_group --name som-core
           az webapp deploy --resource-group wholesale-platform-api_group --name som-core --src-path ${{ runner.temp }}/core.zip --type zip
         shell: bash
 
@@ -158,6 +159,7 @@ jobs:
 
       - run: |
           az webapp config appsettings set --resource-group wholesale-platform-api_group --name som-wholesaler --settings WEBSITE_NODE_DEFAULT_VERSION=~20 SCM_DO_BUILD_DURING_DEPLOYMENT=false
+          az webapp restart --resource-group wholesale-platform-api_group --name som-wholesaler
           az webapp deploy --resource-group wholesale-platform-api_group --name som-wholesaler --src-path ${{ runner.temp }}/wholesaler.zip --type zip
         shell: bash
 
@@ -231,5 +233,6 @@ jobs:
 
       - run: |
           az webapp config appsettings set --resource-group wholesale-platform-api_group --name som-customer --settings WEBSITE_NODE_DEFAULT_VERSION=~20 SCM_DO_BUILD_DURING_DEPLOYMENT=false
+          az webapp restart --resource-group wholesale-platform-api_group --name som-customer
           az webapp deploy --resource-group wholesale-platform-api_group --name som-customer --src-path ${{ runner.temp }}/customer.zip --type zip
         shell: bash
