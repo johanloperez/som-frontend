@@ -45,29 +45,7 @@ jobs:
           <?xml version="1.0" encoding="utf-8"?>
           <configuration>
             <system.webServer>
-              <webSocket enabled="false" />
-              <iisnode devErrorsEnabled="true" />
-              <handlers>
-                <add name="iisnode" path="apps/$app/server.js" verb="*" modules="iisnode" />
-              </handlers>
-              <rewrite>
-                <rules>
-                  <rule name="StaticContent" stopProcessing="true">
-                    <match url=".*" />
-                    <conditions logicalGrouping="MatchAll">
-                      <add input="{REQUEST_FILENAME}" matchType="IsFile" />
-                    </conditions>
-                    <action type="None" />
-                  </rule>
-                  <rule name="DynamicContent" stopProcessing="true">
-                    <match url=".*" />
-                    <conditions logicalGrouping="MatchAll">
-                      <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
-                    </conditions>
-                    <action type="Rewrite" url="apps/$app/server.js" />
-                  </rule>
-                </rules>
-              </rewrite>
+              <httpPlatform processPath="node" arguments="apps/$app/server.js" stdoutLogEnabled="true" stdoutLogFile=".\logs\node-stdout.log" startupTimeLimit="120" requestTimeout="00:04:00" />
             </system.webServer>
           </configuration>
           "@
@@ -116,29 +94,7 @@ jobs:
           <?xml version="1.0" encoding="utf-8"?>
           <configuration>
             <system.webServer>
-              <webSocket enabled="false" />
-              <iisnode devErrorsEnabled="true" />
-              <handlers>
-                <add name="iisnode" path="apps/$app/server.js" verb="*" modules="iisnode" />
-              </handlers>
-              <rewrite>
-                <rules>
-                  <rule name="StaticContent" stopProcessing="true">
-                    <match url=".*" />
-                    <conditions logicalGrouping="MatchAll">
-                      <add input="{REQUEST_FILENAME}" matchType="IsFile" />
-                    </conditions>
-                    <action type="None" />
-                  </rule>
-                  <rule name="DynamicContent" stopProcessing="true">
-                    <match url=".*" />
-                    <conditions logicalGrouping="MatchAll">
-                      <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
-                    </conditions>
-                    <action type="Rewrite" url="apps/$app/server.js" />
-                  </rule>
-                </rules>
-              </rewrite>
+              <httpPlatform processPath="node" arguments="apps/$app/server.js" stdoutLogEnabled="true" stdoutLogFile=".\logs\node-stdout.log" startupTimeLimit="120" requestTimeout="00:04:00" />
             </system.webServer>
           </configuration>
           "@
@@ -187,29 +143,7 @@ jobs:
           <?xml version="1.0" encoding="utf-8"?>
           <configuration>
             <system.webServer>
-              <webSocket enabled="false" />
-              <iisnode devErrorsEnabled="true" />
-              <handlers>
-                <add name="iisnode" path="apps/$app/server.js" verb="*" modules="iisnode" />
-              </handlers>
-              <rewrite>
-                <rules>
-                  <rule name="StaticContent" stopProcessing="true">
-                    <match url=".*" />
-                    <conditions logicalGrouping="MatchAll">
-                      <add input="{REQUEST_FILENAME}" matchType="IsFile" />
-                    </conditions>
-                    <action type="None" />
-                  </rule>
-                  <rule name="DynamicContent" stopProcessing="true">
-                    <match url=".*" />
-                    <conditions logicalGrouping="MatchAll">
-                      <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
-                    </conditions>
-                    <action type="Rewrite" url="apps/$app/server.js" />
-                  </rule>
-                </rules>
-              </rewrite>
+              <httpPlatform processPath="node" arguments="apps/$app/server.js" stdoutLogEnabled="true" stdoutLogFile=".\logs\node-stdout.log" startupTimeLimit="120" requestTimeout="00:04:00" />
             </system.webServer>
           </configuration>
           "@
