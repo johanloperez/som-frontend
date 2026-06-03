@@ -46,6 +46,7 @@ jobs:
           <configuration>
             <system.webServer>
               <webSocket enabled="false" />
+              <iisnode devErrorsEnabled="true" />
               <handlers>
                 <add name="iisnode" path="apps/$app/server.js" verb="*" modules="iisnode" />
               </handlers>
@@ -116,6 +117,7 @@ jobs:
           <configuration>
             <system.webServer>
               <webSocket enabled="false" />
+              <iisnode devErrorsEnabled="true" />
               <handlers>
                 <add name="iisnode" path="apps/$app/server.js" verb="*" modules="iisnode" />
               </handlers>
@@ -186,6 +188,7 @@ jobs:
           <configuration>
             <system.webServer>
               <webSocket enabled="false" />
+              <iisnode devErrorsEnabled="true" />
               <handlers>
                 <add name="iisnode" path="apps/$app/server.js" verb="*" modules="iisnode" />
               </handlers>
