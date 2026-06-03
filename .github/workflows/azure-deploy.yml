@@ -37,19 +37,43 @@ jobs:
       - run: |
           $app = "core"
           $standalone = "apps/$app/.next/standalone"
-          $appDir = "$standalone/apps/$app"
-          New-Item -ItemType Directory -Force -Path "$appDir/.next" | Out-Null
-          if (Test-Path "apps/$app/.next/static") { Copy-Item -Recurse -Path "apps/$app/.next/static" -Destination "$appDir/.next/static" }
-          if (Test-Path "apps/$app/public") { Copy-Item -Recurse -Path "apps/$app/public" -Destination "$appDir/public" }
-          Set-Content -Path "$standalone/web.config" -Value @"
+          $deployDir = "${{ runner.temp }}/deploy-$app"
+          Remove-Item -Recurse -Force "$deployDir" -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path "$deployDir" | Out-Null
+          Copy-Item -Recurse -Path "$standalone/apps/$app/*" -Destination "$deployDir"
+          Copy-Item -Recurse -Path "$standalone/node_modules" -Destination "$deployDir/node_modules"
+          if (Test-Path "apps/$app/.next/static") { Copy-Item -Recurse -Path "apps/$app/.next/static" -Destination "$deployDir/.next/static" }
+          if (Test-Path "apps/$app/public") { Copy-Item -Recurse -Path "apps/$app/public" -Destination "$deployDir/public" }
+          Set-Content -Path "$deployDir/web.config" -Value @"
           <?xml version="1.0" encoding="utf-8"?>
           <configuration>
             <system.webServer>
-              <httpPlatform processPath="node" arguments="apps/$app/server.js" stdoutLogEnabled="true" stdoutLogFile=".\logs\node-stdout.log" startupTimeLimit="120" requestTimeout="00:04:00" />
+              <handlers>
+                <add name="iisnode" path="server.js" verb="*" modules="iisnode" />
+              </handlers>
+              <rewrite>
+                <rules>
+                  <rule name="StaticContent" stopProcessing="true">
+                    <match url=".*" />
+                    <conditions logicalGrouping="MatchAll">
+                      <add input="{REQUEST_FILENAME}" matchType="IsFile" />
+                    </conditions>
+                    <action type="None" />
+                  </rule>
+                  <rule name="DynamicContent" stopProcessing="true">
+                    <match url=".*" />
+                    <conditions logicalGrouping="MatchAll">
+                      <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+                    </conditions>
+                    <action type="Rewrite" url="server.js" />
+                  </rule>
+                </rules>
+              </rewrite>
+              <iisnode loggingEnabled="true" devErrorsEnabled="true" />
             </system.webServer>
           </configuration>
           "@
-          Compress-Archive -Path "$standalone/*" -DestinationPath ${{ runner.temp }}/$app.zip
+          Compress-Archive -Path "$deployDir/*" -DestinationPath ${{ runner.temp }}/$app.zip
         shell: pwsh
 
       - name: Azure login (OIDC)
@@ -86,19 +110,43 @@ jobs:
       - run: |
           $app = "wholesaler"
           $standalone = "apps/$app/.next/standalone"
-          $appDir = "$standalone/apps/$app"
-          New-Item -ItemType Directory -Force -Path "$appDir/.next" | Out-Null
-          if (Test-Path "apps/$app/.next/static") { Copy-Item -Recurse -Path "apps/$app/.next/static" -Destination "$appDir/.next/static" }
-          if (Test-Path "apps/$app/public") { Copy-Item -Recurse -Path "apps/$app/public" -Destination "$appDir/public" }
-          Set-Content -Path "$standalone/web.config" -Value @"
+          $deployDir = "${{ runner.temp }}/deploy-$app"
+          Remove-Item -Recurse -Force "$deployDir" -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path "$deployDir" | Out-Null
+          Copy-Item -Recurse -Path "$standalone/apps/$app/*" -Destination "$deployDir"
+          Copy-Item -Recurse -Path "$standalone/node_modules" -Destination "$deployDir/node_modules"
+          if (Test-Path "apps/$app/.next/static") { Copy-Item -Recurse -Path "apps/$app/.next/static" -Destination "$deployDir/.next/static" }
+          if (Test-Path "apps/$app/public") { Copy-Item -Recurse -Path "apps/$app/public" -Destination "$deployDir/public" }
+          Set-Content -Path "$deployDir/web.config" -Value @"
           <?xml version="1.0" encoding="utf-8"?>
           <configuration>
             <system.webServer>
-              <httpPlatform processPath="node" arguments="apps/$app/server.js" stdoutLogEnabled="true" stdoutLogFile=".\logs\node-stdout.log" startupTimeLimit="120" requestTimeout="00:04:00" />
+              <handlers>
+                <add name="iisnode" path="server.js" verb="*" modules="iisnode" />
+              </handlers>
+              <rewrite>
+                <rules>
+                  <rule name="StaticContent" stopProcessing="true">
+                    <match url=".*" />
+                    <conditions logicalGrouping="MatchAll">
+                      <add input="{REQUEST_FILENAME}" matchType="IsFile" />
+                    </conditions>
+                    <action type="None" />
+                  </rule>
+                  <rule name="DynamicContent" stopProcessing="true">
+                    <match url=".*" />
+                    <conditions logicalGrouping="MatchAll">
+                      <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+                    </conditions>
+                    <action type="Rewrite" url="server.js" />
+                  </rule>
+                </rules>
+              </rewrite>
+              <iisnode loggingEnabled="true" devErrorsEnabled="true" />
             </system.webServer>
           </configuration>
           "@
-          Compress-Archive -Path "$standalone/*" -DestinationPath ${{ runner.temp }}/$app.zip
+          Compress-Archive -Path "$deployDir/*" -DestinationPath ${{ runner.temp }}/$app.zip
         shell: pwsh
 
       - name: Azure login (OIDC)
@@ -135,19 +183,43 @@ jobs:
       - run: |
           $app = "customer"
           $standalone = "apps/$app/.next/standalone"
-          $appDir = "$standalone/apps/$app"
-          New-Item -ItemType Directory -Force -Path "$appDir/.next" | Out-Null
-          if (Test-Path "apps/$app/.next/static") { Copy-Item -Recurse -Path "apps/$app/.next/static" -Destination "$appDir/.next/static" }
-          if (Test-Path "apps/$app/public") { Copy-Item -Recurse -Path "apps/$app/public" -Destination "$appDir/public" }
-          Set-Content -Path "$standalone/web.config" -Value @"
+          $deployDir = "${{ runner.temp }}/deploy-$app"
+          Remove-Item -Recurse -Force "$deployDir" -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path "$deployDir" | Out-Null
+          Copy-Item -Recurse -Path "$standalone/apps/$app/*" -Destination "$deployDir"
+          Copy-Item -Recurse -Path "$standalone/node_modules" -Destination "$deployDir/node_modules"
+          if (Test-Path "apps/$app/.next/static") { Copy-Item -Recurse -Path "apps/$app/.next/static" -Destination "$deployDir/.next/static" }
+          if (Test-Path "apps/$app/public") { Copy-Item -Recurse -Path "apps/$app/public" -Destination "$deployDir/public" }
+          Set-Content -Path "$deployDir/web.config" -Value @"
           <?xml version="1.0" encoding="utf-8"?>
           <configuration>
             <system.webServer>
-              <httpPlatform processPath="node" arguments="apps/$app/server.js" stdoutLogEnabled="true" stdoutLogFile=".\logs\node-stdout.log" startupTimeLimit="120" requestTimeout="00:04:00" />
+              <handlers>
+                <add name="iisnode" path="server.js" verb="*" modules="iisnode" />
+              </handlers>
+              <rewrite>
+                <rules>
+                  <rule name="StaticContent" stopProcessing="true">
+                    <match url=".*" />
+                    <conditions logicalGrouping="MatchAll">
+                      <add input="{REQUEST_FILENAME}" matchType="IsFile" />
+                    </conditions>
+                    <action type="None" />
+                  </rule>
+                  <rule name="DynamicContent" stopProcessing="true">
+                    <match url=".*" />
+                    <conditions logicalGrouping="MatchAll">
+                      <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+                    </conditions>
+                    <action type="Rewrite" url="server.js" />
+                  </rule>
+                </rules>
+              </rewrite>
+              <iisnode loggingEnabled="true" devErrorsEnabled="true" />
             </system.webServer>
           </configuration>
           "@
-          Compress-Archive -Path "$standalone/*" -DestinationPath ${{ runner.temp }}/$app.zip
+          Compress-Archive -Path "$deployDir/*" -DestinationPath ${{ runner.temp }}/$app.zip
         shell: pwsh
 
       - name: Azure login (OIDC)
