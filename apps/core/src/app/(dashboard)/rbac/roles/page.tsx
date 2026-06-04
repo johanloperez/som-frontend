@@ -21,18 +21,20 @@ export default function RolesPage() {
   const [error, setError] = useState("");
 
   const load = async (activeRoleId?: string) => {
-    try {
-      const [r, res] = await Promise.all([api.get("/platform/roles"), api.get("/platform/resources")]);
-      setRoles(r.data);
-      setResources(res.data);
-      if (activeRoleId) {
-        const updated = r.data.find((role: Role) => role.id === activeRoleId);
-        if (updated) setSelectedRole(updated);
-      }
-    } catch { }
+    const [r, res] = await Promise.all([api.get("/platform/roles"), api.get("/platform/resources")]);
+    setRoles(r.data);
+    setResources(res.data);
+    if (activeRoleId) {
+      const updated = r.data.find((role: Role) => role.id === activeRoleId);
+      if (updated) setSelectedRole(updated);
+    }
   };
 
-  useEffect(() => { load(); }, []);
+  const loadSafe = async (activeRoleId?: string) => {
+    try { await load(activeRoleId); } catch { }
+  };
+
+  useEffect(() => { loadSafe(); }, []);
 
   const create = async () => {
     setError("");
@@ -40,17 +42,18 @@ export default function RolesPage() {
       await api.post("/platform/roles", { name: newName });
       setOpen(false);
       setNewName("");
-      load();
+      loadSafe();
     } catch (e: any) { setError(e?.response?.data?.error ?? "Error"); }
   };
 
   const togglePermission = async (roleId: string, resourceId: string) => {
+    setError("");
     const role = roles.find((r) => r.id === roleId);
     const has = role?.permissions?.some((p) => p.id === resourceId);
     const ids = has
       ? (role?.permissions ?? []).filter((p) => p.id !== resourceId).map((p) => p.id)
       : [...(role?.permissions ?? []).map((p) => p.id), resourceId];
-    try { await api.put(`/platform/roles/${roleId}/permissions`, { resourceIds: ids }); load(roleId); } catch (e: any) { setError(e?.response?.data?.error ?? e?.message ?? "Error al guardar permisos"); }
+    try { await api.put(`/platform/roles/${roleId}/permissions`, { resourceIds: ids }); await load(roleId); } catch (e: any) { setError(e?.response?.data?.error ?? e?.message ?? "Error al guardar permisos"); }
   };
 
   const columns: ColumnDef<Role>[] = [
