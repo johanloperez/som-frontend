@@ -34,6 +34,9 @@ function toCode(s: string) {
   return s.toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_|_$/g, "");
 }
 
+interface CountryData { id: string; name: string; code: string; }
+interface RegionData { id: string; name: string; }
+
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [open, setOpen] = useState(false);
@@ -42,12 +45,24 @@ export default function TenantsPage() {
   const [codeTouched, setCodeTouched] = useState(false);
   const [generatedPwd, setGeneratedPwd] = useState("");
   const [error, setError] = useState("");
+  const [countries, setCountries] = useState<CountryData[]>([]);
+  const [regions, setRegions] = useState<RegionData[]>([]);
+  const [selectedCountryId, setSelectedCountryId] = useState("");
 
   const load = async () => {
     try { const r = await api.get("/platform/tenants"); setTenants(r.data); } catch { }
   };
 
-  useEffect(() => { load(); }, []);
+  const loadCountries = async () => {
+    try { const r = await api.get("/geography/countries"); setCountries(r.data); } catch { }
+  };
+
+  const loadRegions = async (countryId: string) => {
+    if (!countryId) { setRegions([]); return; }
+    try { const r = await api.get(`/geography/countries/${countryId}/regions`); setRegions(r.data); } catch { setRegions([]); }
+  };
+
+  useEffect(() => { load(); loadCountries(); }, []);
 
   const [statusFilter, setStatusFilter] = useState("active");
   const filteredTenants = statusFilter ? tenants.filter(t => t.subscriptionStatus === statusFilter) : tenants;
@@ -58,6 +73,8 @@ export default function TenantsPage() {
     setCodeTouched(false);
     setGeneratedPwd("");
     setError("");
+    setSelectedCountryId("");
+    setRegions([]);
     setOpen(true);
   };
 
@@ -205,8 +222,24 @@ export default function TenantsPage() {
             <Input id="adminFullName" label="Nombre admin" tooltip="Nombre completo del administrador del mayorista" value={form.adminFullName} onChange={(e) => setForm({ ...form, adminFullName: e.target.value })} />
             <Input id="adminEmail" label="Email admin" tooltip="Correo del administrador para iniciar sesión" type="email" value={form.adminEmail} onChange={(e) => setForm({ ...form, adminEmail: e.target.value })} />
             <div className="grid grid-cols-2 gap-3">
-              <Input id="country" label="País" tooltip="País donde opera el mayorista" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
-              <Input id="region" label="Región" tooltip="Región/Estado del mayorista" value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} />
+              <div>
+                <label className="text-sm font-medium mb-1 block">País</label>
+                <select className="w-full border rounded-md px-3 py-2 text-sm" value={selectedCountryId} onChange={(e) => { const c = countries.find(x => x.id === e.target.value); setSelectedCountryId(e.target.value); setForm({ ...form, country: c?.name ?? "", region: "" }); loadRegions(e.target.value); }}>
+                  <option value="">Seleccionar país...</option>
+                  {countries.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Región</label>
+                {regions.length > 0 ? (
+                  <select className="w-full border rounded-md px-3 py-2 text-sm" value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })}>
+                    <option value="">Seleccionar región...</option>
+                    {regions.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+                  </select>
+                ) : (
+                  <Input id="region" placeholder="Escribir región..." tooltip="Región/Estado del mayorista" value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} />
+                )}
+              </div>
               <Input id="city" label="Ciudad" tooltip="Ciudad del mayorista" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
               <Input id="streetLine1" label="Dirección" tooltip="Dirección fiscal del mayorista" value={form.streetLine1} onChange={(e) => setForm({ ...form, streetLine1: e.target.value })} />
               <Input id="postalCode" label="Código Postal" tooltip="Código postal del mayorista" value={form.postalCode} onChange={(e) => setForm({ ...form, postalCode: e.target.value })} />
