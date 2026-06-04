@@ -50,7 +50,7 @@ export default function RolesPage() {
     const ids = has
       ? (role?.permissions ?? []).filter((p) => p.id !== resourceId).map((p) => p.id)
       : [...(role?.permissions ?? []).map((p) => p.id), resourceId];
-    try { await api.put(`/platform/roles/${roleId}/permissions`, { resourceIds: ids }); load(roleId); } catch { }
+    try { await api.put(`/platform/roles/${roleId}/permissions`, { resourceIds: ids }); load(roleId); } catch (e: any) { setError(e?.response?.data?.error ?? e?.message ?? "Error al guardar permisos"); }
   };
 
   const columns: ColumnDef<Role>[] = [
@@ -101,7 +101,8 @@ export default function RolesPage() {
         </div>
       </Modal>
 
-      <Modal open={!!selectedRole} onClose={() => setSelectedRole(null)} title={`Permisos: ${selectedRole?.name}`}>
+      <Modal open={!!selectedRole} onClose={() => { setSelectedRole(null); setError(""); }} title={`Permisos: ${selectedRole?.name}`}>
+        {error && <p className="text-sm text-destructive mb-2">{error}</p>}
         <div className="max-h-96 overflow-y-auto space-y-4">
           {Object.entries(
             resources.reduce<Record<string, typeof resources>>((acc, r) => {
