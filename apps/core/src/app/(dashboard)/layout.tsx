@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { AuthProvider, useAuth, Sidebar, type SidebarGroup } from "@repo/ui";
+import { AuthProvider, useAuth, Sidebar, LoadingOverlay, type SidebarGroup } from "@repo/ui";
 import { LayoutDashboard, Building2, Users, Package, BarChart3, Shield } from "lucide-react";
 
 function DashboardInner({ children }: { children: React.ReactNode }) {
@@ -11,6 +11,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
   useEffect(() => { if (!loading && !user) router.push("/login"); }, [user, loading, router]);
   if (loading || !user) return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Cargando...</div>;
 
+  const isAdmin = user.role === "platform_admin" || !user.permissions || user.permissions.length === 0;
   const permissionMap: Record<string, string> = {
     "/tenants": "tenants.view",
     "/customers": "customers.view",
@@ -21,7 +22,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
     "/rbac/resources": "resources.manage",
   };
   const userPerms = user.permissions ?? [];
-  const canAccess = (href: string) => !permissionMap[href] || userPerms.includes(permissionMap[href]);
+  const canAccess = (href: string) => isAdmin || !permissionMap[href] || userPerms.includes(permissionMap[href]);
 
   const groups: SidebarGroup[] = [
     { label: "General", items: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }] },
@@ -41,6 +42,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
   return (
     <Sidebar title="Core Admin" subtitle={user.email} groups={groups}
       onLogout={logout} user={{ name: user.fullName || user.email, email: user.email }}>
+      <LoadingOverlay />
       {children}
     </Sidebar>
   );

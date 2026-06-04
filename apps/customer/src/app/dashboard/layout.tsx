@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AuthProvider, useAuth, Sidebar, type SidebarGroup } from "@repo/ui";
+import { AuthProvider, useAuth, Sidebar, LoadingOverlay, type SidebarGroup } from "@repo/ui";
 import { api } from "@repo/api";
 import { LayoutDashboard, Handshake, ShoppingCart, User, Key, Search } from "lucide-react";
 
@@ -32,6 +32,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
   return (
     <Sidebar title={businessName || user.fullName} subtitle={user.email} groups={groups}
       onLogout={logout} user={{ name: user.fullName, email: user.email }}>
+      <LoadingOverlay />
       {children}
     </Sidebar>
   );

@@ -10,3 +10,4 @@ export { DataTable, type FilterConfig, type FilterOption } from "./data-table";
 export { Tooltip } from "./tooltip";
 export { Avatar } from "./avatar";
 export { Sidebar, type SidebarItem, type SidebarGroup } from "./sidebar";
+export { LoadingOverlay } from "./loading-overlay";

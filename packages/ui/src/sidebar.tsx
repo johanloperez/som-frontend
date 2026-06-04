@@ -176,7 +176,7 @@ export function Sidebar({
       </aside>
 
       {/* ─── Contenido ─── */}
-      <main className="flex-1 p-6 overflow-x-auto">
+      <main className="relative flex-1 p-6 overflow-x-auto">
         {children}
       </main>
     </div>
