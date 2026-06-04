@@ -37,7 +37,7 @@ function toCode(s: string) {
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ slug: "", displayName: "", legalName: "", taxId: "", providerCode: "", adminEmail: "", adminFullName: "" });
+  const [form, setForm] = useState({ slug: "", displayName: "", legalName: "", taxId: "", providerCode: "", adminEmail: "", adminFullName: "", country: "", region: "", city: "", streetLine1: "", postalCode: "" });
   const [slugTouched, setSlugTouched] = useState(false);
   const [codeTouched, setCodeTouched] = useState(false);
   const [generatedPwd, setGeneratedPwd] = useState("");
@@ -53,7 +53,7 @@ export default function TenantsPage() {
   const filteredTenants = statusFilter ? tenants.filter(t => t.subscriptionStatus === statusFilter) : tenants;
 
   const openModal = () => {
-    setForm({ slug: "", displayName: "", legalName: "", taxId: "", providerCode: "", adminEmail: "", adminFullName: "" });
+    setForm({ slug: "", displayName: "", legalName: "", taxId: "", providerCode: "", adminEmail: "", adminFullName: "", country: "", region: "", city: "", streetLine1: "", postalCode: "" });
     setSlugTouched(false);
     setCodeTouched(false);
     setGeneratedPwd("");
@@ -204,6 +204,13 @@ export default function TenantsPage() {
             <Input id="providerCode" label="Código Proveedor" tooltip="Código interno para facturación. Se auto-genera, pero puedes editarlo." value={form.providerCode} onChange={(e) => { setCodeTouched(true); setForm({ ...form, providerCode: e.target.value }); }} />
             <Input id="adminFullName" label="Nombre admin" tooltip="Nombre completo del administrador del mayorista" value={form.adminFullName} onChange={(e) => setForm({ ...form, adminFullName: e.target.value })} />
             <Input id="adminEmail" label="Email admin" tooltip="Correo del administrador para iniciar sesión" type="email" value={form.adminEmail} onChange={(e) => setForm({ ...form, adminEmail: e.target.value })} />
+            <div className="grid grid-cols-2 gap-3">
+              <Input id="country" label="País" tooltip="País donde opera el mayorista" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
+              <Input id="region" label="Región" tooltip="Región/Estado del mayorista" value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} />
+              <Input id="city" label="Ciudad" tooltip="Ciudad del mayorista" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+              <Input id="streetLine1" label="Dirección" tooltip="Dirección fiscal del mayorista" value={form.streetLine1} onChange={(e) => setForm({ ...form, streetLine1: e.target.value })} />
+              <Input id="postalCode" label="Código Postal" tooltip="Código postal del mayorista" value={form.postalCode} onChange={(e) => setForm({ ...form, postalCode: e.target.value })} />
+            </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button onClick={create} className="w-full">Crear Mayorista</Button>
           </div>
