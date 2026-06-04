@@ -193,7 +193,7 @@ export default function TenantsPage() {
               <p className="text-lg font-mono font-bold select-all text-green-950 dark:text-white">{generatedPwd}</p>
             </div>
             <p className="text-sm text-muted-foreground">El admin fue creado con el email <strong>{form.adminEmail}</strong>. Deberá cambiar la contraseña al iniciar sesión.</p>
-            <Button className="w-full" onClick={() => { setOpen(false); setGeneratedPwd(""); setForm({ slug: "", displayName: "", legalName: "", taxId: "", providerCode: "", adminEmail: "", adminFullName: "" }); setSlugTouched(false); setCodeTouched(false); load(); }}>Cerrar</Button>
+            <Button className="w-full" onClick={() => { setOpen(false); setGeneratedPwd(""); setForm({ slug: "", displayName: "", legalName: "", taxId: "", providerCode: "", adminEmail: "", adminFullName: "", country: "", region: "", city: "", streetLine1: "", postalCode: "" }); setSlugTouched(false); setCodeTouched(false); load(); }}>Cerrar</Button>
           </div>
         ) : (
           <div className="space-y-3">
