@@ -117,10 +117,11 @@ export default function RolesPage() {
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1 px-2">{group}</p>
               {perms.map((res) => {
                 const role = selectedRole;
+                const disabled = role?.isSystem ?? false;
                 const has = role ? roles.find((r) => r.id === role.id)?.permissions?.some((p) => p.id === res.id) ?? false : false;
                 return (
-                  <label key={res.id} className="flex items-center gap-3 p-2 rounded hover:bg-muted cursor-pointer">
-                    <input type="checkbox" checked={has} onChange={() => togglePermission(role!.id, res.id)} className="h-4 w-4" />
+                  <label key={res.id} className={`flex items-center gap-3 p-2 rounded ${disabled ? "opacity-60" : "hover:bg-muted cursor-pointer"}`}>
+                    <input type="checkbox" checked={has} disabled={disabled} onChange={() => togglePermission(role!.id, res.id)} className="h-4 w-4" />
                     <div>
                       <p className="text-sm font-medium">{res.description || res.code}</p>
                       <p className="text-xs text-muted-foreground">{res.code}</p>
