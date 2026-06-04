@@ -25,7 +25,7 @@ export default function UsersPage() {
   const load = async () => {
     try {
       const [u, r] = await Promise.all([api.get("/platform/users"), api.get("/platform/roles")]);
-      setUsers(u.data.filter((u: CoreUser) => u.role === "platform_admin"));
+      setUsers(u.data);
       setRoles(r.data);
     } catch { }
   };
