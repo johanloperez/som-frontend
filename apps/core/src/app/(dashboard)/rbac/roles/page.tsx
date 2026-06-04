@@ -17,17 +17,16 @@ export default function RolesPage() {
   const [resources, setResources] = useState<{ id: string; code: string; group: string; description?: string }[]>([]);
   const [open, setOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
-  const [pendingRoleId, setPendingRoleId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [error, setError] = useState("");
 
-  const load = async () => {
+  const load = async (activeRoleId?: string) => {
     try {
       const [r, res] = await Promise.all([api.get("/platform/roles"), api.get("/platform/resources")]);
       setRoles(r.data);
       setResources(res.data);
-      if (pendingRoleId) {
-        const updated = r.data.find((role: Role) => role.id === pendingRoleId);
+      if (activeRoleId) {
+        const updated = r.data.find((role: Role) => role.id === activeRoleId);
         if (updated) setSelectedRole(updated);
       }
     } catch { }
@@ -51,8 +50,7 @@ export default function RolesPage() {
     const ids = has
       ? (role?.permissions ?? []).filter((p) => p.id !== resourceId).map((p) => p.id)
       : [...(role?.permissions ?? []).map((p) => p.id), resourceId];
-    setPendingRoleId(roleId);
-    try { await api.put(`/platform/roles/${roleId}/permissions`, { resourceIds: ids }); load(); } catch { }
+    try { await api.put(`/platform/roles/${roleId}/permissions`, { resourceIds: ids }); load(roleId); } catch { }
   };
 
   const columns: ColumnDef<Role>[] = [
@@ -103,7 +101,7 @@ export default function RolesPage() {
         </div>
       </Modal>
 
-      <Modal open={!!selectedRole} onClose={() => { setSelectedRole(null); setPendingRoleId(null); }} title={`Permisos: ${selectedRole?.name}`}>
+      <Modal open={!!selectedRole} onClose={() => setSelectedRole(null)} title={`Permisos: ${selectedRole?.name}`}>
         <div className="max-h-96 overflow-y-auto space-y-4">
           {Object.entries(
             resources.reduce<Record<string, typeof resources>>((acc, r) => {
