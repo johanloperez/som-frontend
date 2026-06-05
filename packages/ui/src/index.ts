@@ -11,3 +11,4 @@ export { Tooltip } from "./tooltip";
 export { Avatar } from "./avatar";
 export { Sidebar, type SidebarItem, type SidebarGroup } from "./sidebar";
 export { LoadingOverlay } from "./loading-overlay";
+export { CredentialsModal } from "./credentials-modal";
