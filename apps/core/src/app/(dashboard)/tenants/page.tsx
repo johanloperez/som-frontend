@@ -18,6 +18,12 @@ interface Tenant {
   createdAt: string;
 }
 
+interface Plan {
+  id: string;
+  name: string;
+  monthlyPrice: number;
+}
+
 const statusVariant: Record<string, "success" | "warning" | "destructive" | "default"> = {
   active: "success",
   suspended: "warning",
@@ -31,19 +37,15 @@ function toSlug(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
-function toCode(s: string) {
-  return s.toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_|_$/g, "");
-}
-
 interface CountryData { id: string; name: string; code: string; }
 interface RegionData { id: string; name: string; }
 
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ slug: "", displayName: "", legalName: "", taxId: "", providerCode: "", adminEmail: "", adminFullName: "", country: "", region: "", city: "", streetLine1: "", postalCode: "" });
-  const [slugTouched, setSlugTouched] = useState(false);
-  const [codeTouched, setCodeTouched] = useState(false);
+  const [form, setForm] = useState({ displayName: "", legalName: "", taxId: "", adminEmail: "", adminFullName: "", country: "", region: "", city: "", streetLine1: "", postalCode: "" });
+  const [planId, setPlanId] = useState<string>("");
   const [generatedPwd, setGeneratedPwd] = useState("");
   const [credentials, setCredentials] = useState<{ email: string; password: string; tenantCode?: string } | null>(null);
   const [sendEmail, setSendEmail] = useState(false);
@@ -56,6 +58,10 @@ export default function TenantsPage() {
     try { const r = await api.get("/platform/tenants"); setTenants(r.data); } catch { }
   };
 
+  const loadPlans = async () => {
+    try { const r = await api.get("/platform/plans"); setPlans(r.data); } catch { }
+  };
+
   const loadCountries = async () => {
     try { const r = await api.get("/geography/countries"); setCountries(r.data); } catch { }
   };
@@ -65,16 +71,14 @@ export default function TenantsPage() {
     try { const r = await api.get(`/geography/countries/${countryId}/regions`); setRegions(r.data); } catch { setRegions([]); }
   };
 
-  useEffect(() => { load(); loadCountries(); }, []);
+  useEffect(() => { load(); loadPlans(); loadCountries(); }, []);
 
   const [statusFilter, setStatusFilter] = useState("active");
   const filteredTenants = statusFilter ? tenants.filter(t => t.subscriptionStatus === statusFilter) : tenants;
 
   const openModal = () => {
-    setForm({ slug: "", displayName: "", legalName: "", taxId: "", providerCode: "", adminEmail: "", adminFullName: "", country: "", region: "", city: "", streetLine1: "", postalCode: "" });
-    setSlugTouched(false);
-    setCodeTouched(false);
-    setGeneratedPwd("");
+    setForm({ displayName: "", legalName: "", taxId: "", adminEmail: "", adminFullName: "", country: "", region: "", city: "", streetLine1: "", postalCode: "" });
+    setPlanId(plans[0]?.id ?? "");
     setError("");
     setSelectedCountryId("");
     setRegions([]);
@@ -82,20 +86,29 @@ export default function TenantsPage() {
   };
 
   const updateField = (field: string, value: string) => {
-    const next = { ...form, [field]: value };
-    if (field === "displayName" && !slugTouched) {
-      next.slug = toSlug(value);
-    }
-    if (!codeTouched) {
-      next.providerCode = toCode(next.slug);
-    }
-    setForm(next);
+    setForm(prev => ({ ...prev, [field]: value }));
   };
 
   const create = async () => {
     setError("");
     try {
-      const res = await api.post("/platform/tenants", { ...form, sendEmail });
+      const slug = toSlug(form.displayName);
+      const res = await api.post("/platform/tenants", {
+        slug,
+        displayName: form.displayName,
+        legalName: form.legalName,
+        taxId: form.taxId || undefined,
+        providerCode: slug,
+        adminEmail: form.adminEmail,
+        adminFullName: form.adminFullName,
+        planId: planId || undefined,
+        sendEmail,
+        country: form.country || undefined,
+        region: form.region || undefined,
+        city: form.city || undefined,
+        streetLine1: form.streetLine1 || undefined,
+        postalCode: form.postalCode || undefined,
+      });
       const creds = res.data?.credentials;
       if (creds) {
         setCredentials({ email: creds.email, password: creds.password, tenantCode: creds.tenantCode });
@@ -142,8 +155,7 @@ export default function TenantsPage() {
   const columns: ColumnDef<Tenant>[] = [
     { header: () => <Tooltip content="Código único del mayorista para login (ej: WH8XK92A)">Código</Tooltip>, accessorKey: "code" },
     { header: () => <Tooltip content="Nombre comercial del mayorista">Nombre</Tooltip>, accessorKey: "displayName" },
-    { header: () => <Tooltip content="Identificador único usado en la URL (ej: mi-mayorista)">Slug</Tooltip>, accessorKey: "slug" },
-    { header: () => <Tooltip content="Razón social registrada del mayorista">Legal</Tooltip>, accessorKey: "legalName" },
+    { header: () => <Tooltip content="Identificador único">Slug</Tooltip>, accessorKey: "slug" },
     {
       header: () => <Tooltip content="Estado de la suscripción del mayorista (activo, suspendido, etc.)">Estado</Tooltip>, accessorKey: "subscriptionStatus",
       cell: ({ getValue }) => {
@@ -151,7 +163,7 @@ export default function TenantsPage() {
         return <Badge variant={statusVariant[v] ?? "default"}>{v}</Badge>;
       },
     },
-    { header: () => <Tooltip content="Identificador fiscal según el país (RUC, RIF, NIF, CUIT, etc.)">ID Fiscal</Tooltip>, accessorKey: "taxId" },
+    { header: () => <Tooltip content="Identificador fiscal según el país">ID Fiscal</Tooltip>, accessorKey: "taxId" },
     { header: () => <Tooltip content="País donde opera el mayorista">País</Tooltip>, accessorKey: "country" },
     { header: () => <Tooltip content="Fecha en que se registró el mayorista">Creado</Tooltip>, accessorKey: "createdAt" },
     {
@@ -178,11 +190,10 @@ export default function TenantsPage() {
       column: "subscriptionStatus",
       label: "Estado",
       options: [
-        { value: "active", label: "Activo" },
-        { value: "suspended", label: "Suspendido" },
-        { value: "past_due", label: "Vencido" },
-        { value: "cancelled", label: "Cancelado" },
+        { value: "active", label: "Activos" },
         { value: "trial", label: "Prueba" },
+        { value: "suspended", label: "Suspendidos" },
+        { value: "cancelled", label: "Cancelados" },
       ],
     },
     {
@@ -193,53 +204,72 @@ export default function TenantsPage() {
     },
   ];
 
+  const closeAndReset = () => {
+    setOpen(false);
+    setGeneratedPwd("");
+    setCredentials(null);
+    setForm({ displayName: "", legalName: "", taxId: "", adminEmail: "", adminFullName: "", country: "", region: "", city: "", streetLine1: "", postalCode: "" });
+    load();
+  };
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-3xl font-bold">Tenants</h2>
-        </div>
-        <div className="flex items-center gap-3">
-          <select className="border rounded-md px-3 py-2 text-sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <select
+            className="border rounded-md px-3 py-2 text-sm"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
             <option value="active">Activos</option>
             <option value="trial">Prueba</option>
             <option value="suspended">Suspendidos</option>
+            <option value="past_due">Morosos</option>
             <option value="cancelled">Cancelados</option>
             <option value="">Todos</option>
           </select>
           <Button onClick={openModal}>Nuevo Mayorista</Button>
         </div>
       </div>
-      <DataTable columns={columns} data={filteredTenants} filters={filters} searchable={true} pagination={true} />
+      <DataTable columns={columns} data={filteredTenants} filters={filters} searchable pagination />
 
-      <Modal open={open} onClose={() => { setOpen(false); setGeneratedPwd(""); setCredentials(null); load(); }} title={generatedPwd ? "Mayorista Creado" : "Provisionar Mayorista"} description={generatedPwd ? "Guarda estas credenciales. No podrás ver la contraseña de nuevo." : "Se creará una base de datos independiente y se configurará el acceso."}>
+      <Modal open={open} onClose={closeAndReset} title={generatedPwd ? "Mayorista Creado" : "Provisionar Mayorista"} description={generatedPwd ? "Guarda estas credenciales. No se mostrarán de nuevo." : "Completa los datos para crear el mayorista."}>
         {generatedPwd ? (
           <SuccessView
             credentials={credentials}
-            onClose={() => {
-              setOpen(false);
-              setGeneratedPwd("");
-              setCredentials(null);
-              setForm({ slug: "", displayName: "", legalName: "", taxId: "", providerCode: "", adminEmail: "", adminFullName: "", country: "", region: "", city: "", streetLine1: "", postalCode: "" });
-              setSlugTouched(false);
-              setCodeTouched(false);
-              load();
-            }}
+            onClose={closeAndReset}
           />
         ) : (
           <div className="space-y-3">
-            <Input id="displayName" label="Nombre comercial" tooltip="Nombre público del mayorista. El slug y código se generan automáticamente." value={form.displayName} onChange={(e) => updateField("displayName", e.target.value)} />
-            <Input id="slug" label="Slug" tooltip="Identificador único para la URL del mayorista. Se auto-genera, pero puedes editarlo." value={form.slug} onChange={(e) => { setSlugTouched(true); setForm({ ...form, slug: e.target.value }); if (!codeTouched) setForm(f => ({ ...f, providerCode: toCode(e.target.value) })); }} placeholder="mi-mayorista" />
-            <Input id="legalName" label="Razón social" tooltip="Nombre legal registrado del mayorista" value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} />
-            <Input id="taxId" label="ID Fiscal" tooltip="Identificador fiscal (RUC, RIF, NIF, CUIT, etc.)" value={form.taxId} onChange={(e) => setForm({ ...form, taxId: e.target.value })} />
-            <Input id="providerCode" label="Código Proveedor" tooltip="Código interno para facturación. Se auto-genera, pero puedes editarlo." value={form.providerCode} onChange={(e) => { setCodeTouched(true); setForm({ ...form, providerCode: e.target.value }); }} />
-            <Input id="adminFullName" label="Nombre admin" tooltip="Nombre completo del administrador del mayorista" value={form.adminFullName} onChange={(e) => setForm({ ...form, adminFullName: e.target.value })} />
-            <Input id="adminEmail" label="Email admin" tooltip="Correo del administrador para iniciar sesión" type="email" value={form.adminEmail} onChange={(e) => setForm({ ...form, adminEmail: e.target.value })} />
             <div className="grid grid-cols-2 gap-3">
+              <Input id="displayName" label="Nombre comercial *" tooltip="Nombre público del mayorista. El slug se genera automáticamente." value={form.displayName} onChange={(e) => updateField("displayName", e.target.value)} />
+              <Input id="legalName" label="Razón social" tooltip="Nombre legal registrado del mayorista" value={form.legalName} onChange={(e) => updateField("legalName", e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Input id="adminFullName" label="Nombre admin *" tooltip="Nombre completo del administrador del mayorista" value={form.adminFullName} onChange={(e) => updateField("adminFullName", e.target.value)} />
+              <Input id="adminEmail" label="Email admin *" tooltip="Correo del administrador para login" type="email" value={form.adminEmail} onChange={(e) => updateField("adminEmail", e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Input id="taxId" label="ID Fiscal" tooltip="RUC, RIF, NIF, CUIT, etc." value={form.taxId} onChange={(e) => updateField("taxId", e.target.value)} />
+              <div>
+                <label className="text-sm font-medium mb-1 block">Plan</label>
+                <select
+                  className="w-full border rounded-md px-3 py-2 text-sm"
+                  value={planId}
+                  onChange={(e) => setPlanId(e.target.value)}
+                >
+                  <option value="">Sin plan (trial)</option>
+                  {plans.map(p => (
+                    <option key={p.id} value={p.id}>{p.name} - ${p.monthlyPrice}/mes</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="text-sm font-medium mb-1 block">País</label>
                 <select className="w-full border rounded-md px-3 py-2 text-sm" value={selectedCountryId} onChange={(e) => { const c = countries.find(x => x.id === e.target.value); setSelectedCountryId(e.target.value); setForm({ ...form, country: c?.name ?? "", region: "" }); loadRegions(e.target.value); }}>
-                  <option value="">Seleccionar país...</option>
+                  <option value="">Seleccionar...</option>
                   {countries.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
@@ -247,16 +277,18 @@ export default function TenantsPage() {
                 <label className="text-sm font-medium mb-1 block">Región</label>
                 {regions.length > 0 ? (
                   <select className="w-full border rounded-md px-3 py-2 text-sm" value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })}>
-                    <option value="">Seleccionar región...</option>
+                    <option value="">Seleccionar...</option>
                     {regions.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
                   </select>
                 ) : (
-                  <Input id="region" placeholder="Escribir región..." tooltip="Región/Estado del mayorista" value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} />
+                  <input className="w-full border rounded-md px-3 py-2 text-sm" placeholder="Escribir región..." value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} />
                 )}
               </div>
-              <Input id="city" label="Ciudad" tooltip="Ciudad del mayorista" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
-              <Input id="streetLine1" label="Dirección" tooltip="Dirección fiscal del mayorista" value={form.streetLine1} onChange={(e) => setForm({ ...form, streetLine1: e.target.value })} />
-              <Input id="postalCode" label="Código Postal" tooltip="Código postal del mayorista" value={form.postalCode} onChange={(e) => setForm({ ...form, postalCode: e.target.value })} />
+              <Input id="city" label="Ciudad" tooltip="Ciudad del mayorista" value={form.city} onChange={(e) => updateField("city", e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Input id="streetLine1" label="Dirección" tooltip="Dirección fiscal" value={form.streetLine1} onChange={(e) => updateField("streetLine1", e.target.value)} />
+              <Input id="postalCode" label="Código Postal" tooltip="Código postal" value={form.postalCode} onChange={(e) => updateField("postalCode", e.target.value)} />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -268,12 +300,12 @@ export default function TenantsPage() {
         )}
       </Modal>
 
-      <Modal open={!!statusTarget} onClose={() => setStatusTarget(null)} title={statusAction === "suspend" ? "Suspender Mayorista" : "Reactivar Mayorista"} description={statusAction === "suspend" ? `¿Por qué se suspende ${statusTarget?.displayName}?` : `¿Por qué se reactiva ${statusTarget?.displayName}?`}>
+      <Modal open={!!statusTarget} onClose={() => setStatusTarget(null)} title={statusAction === "suspend" ? "Suspender Mayorista" : "Reactivar Mayorista"} description={statusAction === "suspend" ? `¿Por qué se suspende a ${statusTarget?.displayName}?` : `¿Por qué se reactiva a ${statusTarget?.displayName}?`}>
         <div className="space-y-3">
           {statusAction === "suspend" ? (
-            <p className="text-sm text-muted-foreground">El mayorista no podrá acceder ni ser contactado por clientes hasta que sea reactivado.</p>
+            <p className="text-sm text-muted-foreground">El mayorista no podrá acceder a la plataforma hasta ser reactivado.</p>
           ) : (
-            <p className="text-sm text-muted-foreground">El mayorista recuperará el acceso completo a la plataforma.</p>
+            <p className="text-sm text-muted-foreground">El mayorista recuperará el acceso completo.</p>
           )}
           <div className="space-y-2">
             {REASONS.map((r) => (
@@ -283,7 +315,7 @@ export default function TenantsPage() {
               </label>
             ))}
             {statusReason === "Otro" && (
-              <input className="w-full border rounded-md px-3 py-2 text-sm" placeholder="Especifique el motivo..." value={statusReasonOther} onChange={(e) => setStatusReasonOther(e.target.value)} autoFocus />
+              <input className="w-full border rounded-md px-3 py-2 text-sm" placeholder="Motivo..." value={statusReasonOther} onChange={(e) => setStatusReasonOther(e.target.value)} autoFocus />
             )}
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
