@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent, Badge, Button, Tooltip, Modal
 
 interface TenantDetail {
    id: string;
+   code: string;
    slug: string;
    displayName: string;
    legalName: string;
