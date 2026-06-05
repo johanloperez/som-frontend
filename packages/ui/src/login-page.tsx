@@ -8,11 +8,12 @@ import { Tooltip } from "./tooltip";
 interface LoginPageProps {
   title: string;
   description: string;
-  onLogin: (email: string, password: string) => Promise<{ portal: string; tenantSlug?: string } | void>;
+  onLogin: (email: string, password: string, tenantCode?: string) => Promise<{ portal: string; tenantSlug?: string } | void>;
   showRegister?: boolean;
   registerUrl?: string;
   showGoogleLogin?: boolean;
   onGoogleLogin?: () => void;
+  showTenantCode?: boolean;
 }
 
 const PORTAL_URLS: Record<string, string> = {
@@ -21,9 +22,10 @@ const PORTAL_URLS: Record<string, string> = {
   customer: "https://som-customer.azurewebsites.net",
 };
 
-export function LoginPage({ title, description, onLogin, showRegister, registerUrl, showGoogleLogin, onGoogleLogin }: LoginPageProps) {
+export function LoginPage({ title, description, onLogin, showRegister, registerUrl, showGoogleLogin, onGoogleLogin, showTenantCode }: LoginPageProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [tenantCode, setTenantCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -33,7 +35,7 @@ export function LoginPage({ title, description, onLogin, showRegister, registerU
     setError(null);
     setLoading(true);
     try {
-      const result = await onLogin(email, password);
+      const result = await onLogin(email, password, showTenantCode ? tenantCode : undefined);
       if (result) {
         if (result.tenantSlug) sessionStorage.setItem("tenantSlug", result.tenantSlug);
         sessionStorage.setItem("portal", result.portal);
@@ -54,12 +56,29 @@ export function LoginPage({ title, description, onLogin, showRegister, registerU
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
-      <div className="w-full max-w-md rounded-xl  bg-card-bg p-8 shadow-sm">
+      <div className="w-full max-w-md rounded-xl bg-card-bg p-8 shadow-sm">
         <div className="space-y-1 text-center mb-6">
           <h1 className="text-2xl font-bold">{title}</h1>
           <p className="text-sm text-card-foreground">{description}</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-8">
+          {showTenantCode && (
+            <div className="space-y-2">
+              <label htmlFor="tenantCode" className="text-sm font-medium">
+                <Tooltip content="Código único de tu mayorista (ej: WH8XK92A). Visible en tu dashboard.">Código de mayorista</Tooltip>
+              </label>
+              <input
+                id="tenantCode"
+                type="text"
+                required
+                value={tenantCode}
+                onChange={(e) => setTenantCode(e.target.value.toUpperCase())}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="WH8XK92A"
+                maxLength={8}
+              />
+            </div>
+          )}
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium"><Tooltip content="Correo electrónico registrado en la plataforma">Correo</Tooltip></label>
             <input
