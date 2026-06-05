@@ -21,7 +21,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
     "/rbac/roles": "roles.manage",
     "/rbac/resources": "resources.manage",
   };
-  const userPerms = user.permissions ?? [];
+  const userPerms = (user.permissions ?? []).map(p => p.code ?? p);
   const canAccess = (href: string) => isAdmin || !permissionMap[href] || userPerms.includes(permissionMap[href]);
 
   const groups: SidebarGroup[] = [

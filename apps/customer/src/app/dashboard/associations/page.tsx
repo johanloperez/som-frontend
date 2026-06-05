@@ -52,7 +52,7 @@ export default function AssociationsPage() {
   const entrar = async (tenant: TenantInfo) => {
     try {
       const res = await api.post("/auth/exchange-token", { tenantSlug: tenant.slug });
-      const data = res.data as { accessToken: string; userId: string; email: string; fullName: string; role: string; permissions: string[]; tenantSlug: string };
+      const data = res.data as { accessToken: string; userId: string; email: string; fullName: string; role: string; permissions: { code: string; scope: string | null }[]; tenantSlug: string };
       sessionStorage.setItem("auth_user", JSON.stringify({
         id: data.userId, email: data.email, fullName: data.fullName,
         role: data.role, permissions: data.permissions,

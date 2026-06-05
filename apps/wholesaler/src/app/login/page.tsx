@@ -10,10 +10,10 @@ export default function WholesalerLogin() {
   const router = useRouter();
 
   const handleLogin = async (email: string, password: string) => {
-    const res = await api.post("/auth/login", { email, password });
+    const res = await api.post("/auth/login", { email, password, portal: "wholesaler" });
     const data = res.data as {
       userId: string; email: string; fullName: string; role: string;
-      permissions: string[]; accessToken: string; expiresAt: string;
+      permissions: { code: string; scope: string | null }[]; accessToken: string; expiresAt: string;
       tenantSlug?: string; portal?: string; mustChangePassword?: boolean;
     };
 

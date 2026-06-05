@@ -1,78 +1,74 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { api } from "@repo/api";
 
-interface AuthUser {
+export interface AuthUser {
   id: string;
   email: string;
   fullName: string;
   role: string;
-  permissions: string[];
+  permissions: { code: string; scope: string | null }[];
   tenantSlug?: string;
   portal: "core" | "customer" | "wholesaler";
 }
 
-interface AuthContextType {
+interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  hasPermission: (code: string, scope?: string | null) => boolean;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextValue>(null!);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     const stored = sessionStorage.getItem("auth_user");
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      setUser({ portal: "core", ...parsed });
-    }
+    if (stored) setUser(JSON.parse(stored));
     setLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
     const res = await api.post("/auth/login", { email, password });
-    const data = res.data as { userId: string; email: string; fullName: string; role: string; permissions: string[]; accessToken: string; expiresAt: string; tenantSlug?: string; portal: "core" | "customer" | "wholesaler" };
-    const authUser: AuthUser = {
-      id: data.userId,
-      email: data.email,
-      fullName: data.fullName,
-      role: data.role,
-      permissions: data.permissions,
-      tenantSlug: data.tenantSlug,
-      portal: data.portal ?? "core",
+    const data = res.data as {
+      userId: string; email: string; fullName: string; role: string;
+      permissions: { code: string; scope: string | null }[];
+      accessToken: string; expiresAt: string;
+      tenantSlug?: string; portal: "core" | "customer" | "wholesaler";
     };
+    const authUser: AuthUser = {
+      id: data.userId, email: data.email, fullName: data.fullName,
+      role: data.role, permissions: data.permissions ?? [],
+      tenantSlug: data.tenantSlug, portal: data.portal,
+    };
+    sessionStorage.setItem("access_token", data.accessToken);
     sessionStorage.setItem("auth_user", JSON.stringify(authUser));
-    if (data.accessToken) {
-      sessionStorage.setItem("access_token", data.accessToken);
-    }
     setUser(authUser);
   };
 
   const logout = () => {
-    sessionStorage.removeItem("auth_user");
     sessionStorage.removeItem("access_token");
+    sessionStorage.removeItem("auth_user");
     setUser(null);
-    setLoading(false);
-    window.location.href = "/login";
+  };
+
+  const hasPermission = (code: string, scope?: string | null) => {
+    if (!user) return false;
+    return user.permissions.some(p => p.code === code && (!scope || !p.scope || p.scope === scope));
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, hasPermission }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
+  return useContext(AuthContext);
 }

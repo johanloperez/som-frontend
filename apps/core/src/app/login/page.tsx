@@ -12,10 +12,10 @@ const CORE_URL = process.env.NEXT_PUBLIC_CORE_URL ?? "http://localhost:3000";
 
 export default function CoreLogin() {
   const handleLogin = async (email: string, password: string) => {
-    const res = await api.post("/auth/login", { email, password });
+    const res = await api.post("/auth/login", { email, password, portal: "core" });
     const data = res.data as {
       userId: string; email: string; fullName: string; role: string;
-      permissions: string[]; accessToken: string; expiresAt: string;
+      permissions: { code: string; scope: string | null }[]; accessToken: string; expiresAt: string;
       tenantSlug?: string; portal?: string;
     };
 
