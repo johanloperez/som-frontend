@@ -226,7 +226,7 @@ const [editModal, setEditModal] = useState(false);
           <Button variant="outline" onClick={openEditModal}>Editar</Button>
         </div>
       </div>
-      <p className="text-muted-foreground mb-4">/{tenant.slug}</p>
+      <p className="text-muted-foreground mb-4">/{tenant.slug} — <strong className="text-blue-700 font-mono">{tenant.code}</strong></p>
 
       <div className="flex gap-2 mb-6 border-b">
         {tabs.map((t) => (

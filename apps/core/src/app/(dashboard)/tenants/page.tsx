@@ -8,6 +8,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 
 interface Tenant {
   id: string;
+  code: string;
   slug: string;
   displayName: string;
   legalName: string;
@@ -131,6 +132,7 @@ export default function TenantsPage() {
   };
 
   const columns: ColumnDef<Tenant>[] = [
+    { header: () => <Tooltip content="Código único del mayorista para login (ej: WH8XK92A)">Código</Tooltip>, accessorKey: "code" },
     { header: () => <Tooltip content="Nombre comercial del mayorista">Nombre</Tooltip>, accessorKey: "displayName" },
     { header: () => <Tooltip content="Identificador único usado en la URL (ej: mi-mayorista)">Slug</Tooltip>, accessorKey: "slug" },
     { header: () => <Tooltip content="Razón social registrada del mayorista">Legal</Tooltip>, accessorKey: "legalName" },
