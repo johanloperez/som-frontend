@@ -37,22 +37,38 @@ export default function CustomersPage() {
   });
   const [error, setError] = useState("");
   const [generatedPwd, setGeneratedPwd] = useState("");
+  const [countries, setCountries] = useState<{ id: string; name: string; code: string }[]>([]);
+  const [regions, setRegions] = useState<{ id: string; name: string }[]>([]);
+  const [selectedCountryId, setSelectedCountryId] = useState("");
 
   const load = async () => {
     try { const r = await api.get("/platform/customers"); setCustomers(r.data); } catch {}
   };
 
-  useEffect(() => { load(); }, []);
+  const loadCountries = async () => {
+    try { const r = await api.get("/geography/countries"); setCountries(r.data); } catch {}
+  };
+
+  const loadRegions = async (countryId: string) => {
+    if (!countryId) { setRegions([]); return; }
+    try { const r = await api.get(`/geography/countries/${countryId}/regions`); setRegions(r.data); } catch { setRegions([]); }
+  };
+
+  useEffect(() => { load(); loadCountries(); }, []);
 
   const openCreate = () => {
     setEditing(null); setGeneratedPwd("");
     setForm({ fullName: "", email: "", businessName: "", taxId: "", taxAddress: "", phoneE164: "", country: "", region: "", city: "", streetLine1: "", streetLine2: "", postalCode: "", creditScore: 0 });
+    setSelectedCountryId("");
+    setRegions([]);
     setOpen(true);
   };
 
   const openEdit = (c: Customer) => {
     setEditing(c); setGeneratedPwd("");
     setForm({ fullName: c.fullName, email: c.email || "", businessName: c.businessName || "", taxId: c.taxId || "", taxAddress: c.taxAddress || "", phoneE164: c.phoneE164 || "", country: c.country || "", region: c.region || "", city: c.city || "", streetLine1: c.streetLine1 || "", streetLine2: c.streetLine2 || "", postalCode: c.postalCode || "", creditScore: c.creditScore || 0 });
+    setSelectedCountryId("");
+    setRegions([]);
     setOpen(true);
   };
 
@@ -142,11 +158,43 @@ export default function CustomersPage() {
             <Input id="phoneE164" label="Teléfono" value={form.phoneE164} onChange={(e) => setForm({ ...form, phoneE164: e.target.value })} />
           </div>
           <Input id="taxAddress" label="Dirección fiscal" value={form.taxAddress} onChange={(e) => setForm({ ...form, taxAddress: e.target.value })} />
-          <div className="grid grid-cols-3 gap-2">
-            <Input id="country" label="País" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
-            <Input id="region" label="Región" value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} />
-            <Input id="city" label="Ciudad" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
-          </div>
+          {!editing ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium mb-1 block">País</label>
+                <select className="w-full border rounded-md px-3 py-2 text-sm" value={selectedCountryId}
+                  onChange={(e) => {
+                    const c = countries.find(x => x.id === e.target.value);
+                    setSelectedCountryId(e.target.value);
+                    setForm({ ...form, country: c?.name ?? "", region: "" });
+                    loadRegions(e.target.value);
+                  }}>
+                  <option value="">Seleccionar país...</option>
+                  {countries.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Región</label>
+                {regions.length > 0 ? (
+                  <select className="w-full border rounded-md px-3 py-2 text-sm" value={form.region}
+                    onChange={(e) => setForm({ ...form, region: e.target.value })}>
+                    <option value="">Seleccionar región...</option>
+                    {regions.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+                  </select>
+                ) : (
+                  <Input id="region" placeholder="Escribir región..." value={form.region}
+                    onChange={(e) => setForm({ ...form, region: e.target.value })} />
+                )}
+              </div>
+              <Input id="city" label="Ciudad" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              <Input id="country" label="País" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
+              <Input id="region" label="Región" value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} />
+              <Input id="city" label="Ciudad" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+            </div>
+          )}
           <Input id="streetLine1" label="Dirección" value={form.streetLine1} onChange={(e) => setForm({ ...form, streetLine1: e.target.value })} />
           <div className="grid grid-cols-2 gap-3">
             <Input id="streetLine2" label="Dirección 2" value={form.streetLine2} onChange={(e) => setForm({ ...form, streetLine2: e.target.value })} />

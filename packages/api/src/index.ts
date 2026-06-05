@@ -44,7 +44,7 @@ export function createClient(config?: AxiosRequestConfig): AxiosInstance {
     (err) => {
       loadingCount--;
       notify();
-      if (err.response?.status === 401) {
+      if (err.response?.status === 401 && !err.config?.url?.includes("/auth/login")) {
         if (typeof window !== "undefined") {
           sessionStorage.removeItem("auth_user");
           sessionStorage.removeItem("access_token");

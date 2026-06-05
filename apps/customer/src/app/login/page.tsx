@@ -5,18 +5,27 @@ import { api } from "@repo/api";
 
 export default function CustomerLogin() {
   const handleLogin = async (email: string, password: string) => {
-    const res = await api.post("/auth/login", { email, password });
-    const data = res.data as { userId: string; email: string; fullName: string; role: string; permissions: string[]; accessToken: string; expiresAt: string; portal?: string };
+    try {
+      const res = await api.post("/auth/login", { email, password });
+      const data = res.data as { userId: string; email: string; fullName: string; role: string; permissions: string[]; accessToken: string; expiresAt: string; portal?: string; mustChangePassword?: boolean };
 
-    sessionStorage.setItem("auth_user", JSON.stringify({
-      id: data.userId, email: data.email, fullName: data.fullName,
-      role: data.role, permissions: data.permissions,
-      portal: data.portal ?? "customer",
-    }));
-    if (data.accessToken) sessionStorage.setItem("access_token", data.accessToken);
+      sessionStorage.setItem("auth_user", JSON.stringify({
+        id: data.userId, email: data.email, fullName: data.fullName,
+        role: data.role, permissions: data.permissions,
+        portal: data.portal ?? "customer",
+      }));
+      if (data.accessToken) sessionStorage.setItem("access_token", data.accessToken);
 
-    if (data.portal && data.portal !== "customer") {
-      window.location.href = "http://localhost:3000/login";
+      if (data.mustChangePassword) {
+        window.location.href = "/dashboard/change-password";
+        return;
+      }
+
+      if (data.portal && data.portal !== "customer") {
+        window.location.href = "http://localhost:3000/login";
+      }
+    } catch (e: any) {
+      throw new Error(e?.response?.data?.error ?? e?.response?.data?.message ?? e?.response?.data?.detail ?? "Error al iniciar sesión");
     }
   };
 

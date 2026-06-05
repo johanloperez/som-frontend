@@ -45,7 +45,8 @@ export function LoginPage({ title, description, onLogin, showRegister, registerU
       }
       router.push("/dashboard");
     } catch (err: any) {
-      setError(err?.response?.data?.error ?? err?.message ?? "Login failed");
+      const msg = err?.response?.data?.error ?? err?.response?.data?.message ?? err?.response?.data?.detail ?? err?.message ?? "Error al iniciar sesión";
+      setError(msg);
     } finally {
       setLoading(false);
     }
