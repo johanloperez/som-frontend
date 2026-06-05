@@ -45,6 +45,8 @@ export default function TenantsPage() {
   const [slugTouched, setSlugTouched] = useState(false);
   const [codeTouched, setCodeTouched] = useState(false);
   const [generatedPwd, setGeneratedPwd] = useState("");
+  const [credentials, setCredentials] = useState<{ email: string; password: string; tenantCode?: string } | null>(null);
+  const [sendEmail, setSendEmail] = useState(false);
   const [error, setError] = useState("");
   const [countries, setCountries] = useState<CountryData[]>([]);
   const [regions, setRegions] = useState<RegionData[]>([]);
@@ -93,8 +95,14 @@ export default function TenantsPage() {
   const create = async () => {
     setError("");
     try {
-      const res = await api.post("/platform/tenants", form);
-      setGeneratedPwd(res.data.adminPassword ?? "");
+      const res = await api.post("/platform/tenants", { ...form, sendEmail });
+      const creds = res.data?.credentials;
+      if (creds) {
+        setCredentials({ email: creds.email, password: creds.password, tenantCode: creds.tenantCode });
+        setGeneratedPwd(creds.password);
+      } else {
+        setGeneratedPwd(res.data?.adminPassword ?? "");
+      }
     } catch (e: any) {
       setError(e?.response?.data?.error ?? "Error al crear");
     }
@@ -204,16 +212,20 @@ export default function TenantsPage() {
       </div>
       <DataTable columns={columns} data={filteredTenants} filters={filters} searchable={true} pagination={true} />
 
-      <Modal open={open} onClose={() => { setOpen(false); setGeneratedPwd(""); }} title={generatedPwd ? "Mayorista Creado" : "Provisionar Mayorista"} description={generatedPwd ? "El mayorista fue creado exitosamente. Guarda esta contraseña, no se podrá recuperar después." : "Se creará una base de datos independiente y se configurará el acceso."}>
+      <Modal open={open} onClose={() => { setOpen(false); setGeneratedPwd(""); setCredentials(null); load(); }} title={generatedPwd ? "Mayorista Creado" : "Provisionar Mayorista"} description={generatedPwd ? "Guarda estas credenciales. No podrás ver la contraseña de nuevo." : "Se creará una base de datos independiente y se configurará el acceso."}>
         {generatedPwd ? (
-          <div className="space-y-4">
-            <div className="rounded-md border border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800 p-4">
-              <p className="text-sm font-medium mb-1 text-green-950 dark:text-green-100">Contraseña del Admin</p>
-              <p className="text-lg font-mono font-bold select-all text-green-950 dark:text-white">{generatedPwd}</p>
-            </div>
-            <p className="text-sm text-muted-foreground">El admin fue creado con el email <strong>{form.adminEmail}</strong>. Deberá cambiar la contraseña al iniciar sesión.</p>
-            <Button className="w-full" onClick={() => { setOpen(false); setGeneratedPwd(""); setForm({ slug: "", displayName: "", legalName: "", taxId: "", providerCode: "", adminEmail: "", adminFullName: "", country: "", region: "", city: "", streetLine1: "", postalCode: "" }); setSlugTouched(false); setCodeTouched(false); load(); }}>Cerrar</Button>
-          </div>
+          <SuccessView
+            credentials={credentials}
+            onClose={() => {
+              setOpen(false);
+              setGeneratedPwd("");
+              setCredentials(null);
+              setForm({ slug: "", displayName: "", legalName: "", taxId: "", providerCode: "", adminEmail: "", adminFullName: "", country: "", region: "", city: "", streetLine1: "", postalCode: "" });
+              setSlugTouched(false);
+              setCodeTouched(false);
+              load();
+            }}
+          />
         ) : (
           <div className="space-y-3">
             <Input id="displayName" label="Nombre comercial" tooltip="Nombre público del mayorista. El slug y código se generan automáticamente." value={form.displayName} onChange={(e) => updateField("displayName", e.target.value)} />
@@ -247,6 +259,10 @@ export default function TenantsPage() {
               <Input id="postalCode" label="Código Postal" tooltip="Código postal del mayorista" value={form.postalCode} onChange={(e) => setForm({ ...form, postalCode: e.target.value })} />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} className="accent-primary" />
+              Enviar credenciales por email al administrador
+            </label>
             <Button onClick={create} className="w-full">Crear Mayorista</Button>
           </div>
         )}
@@ -279,6 +295,57 @@ export default function TenantsPage() {
           </div>
         </div>
       </Modal>
+    </div>
+  );
+}
+
+function SuccessView({ credentials, onClose }: { credentials: { email: string; password: string; tenantCode?: string } | null; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+
+  if (!credentials) return null;
+
+  const fullText = [
+    "Credenciales de acceso",
+    "",
+    `Email: ${credentials.email}`,
+    `Contraseña: ${credentials.password}`,
+    credentials.tenantCode ? `Código de mayorista: ${credentials.tenantCode}` : null,
+    "Guarda estas credenciales. No podrás ver la contraseña de nuevo.",
+  ].filter(Boolean).join("\n");
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(fullText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 space-y-2 text-sm">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Email</span>
+          <span className="font-mono font-medium">{credentials.email}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Contraseña</span>
+          <span className="font-mono font-medium">{credentials.password}</span>
+        </div>
+        {credentials.tenantCode && (
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Código mayorista</span>
+            <span className="font-mono font-bold text-blue-600">{credentials.tenantCode}</span>
+          </div>
+        )}
+      </div>
+      <p className="text-amber-700 bg-amber-50 dark:bg-amber-950 dark:text-amber-300 rounded-lg p-3 text-sm">
+        Guarda estas credenciales. No podrás ver la contraseña de nuevo.
+      </p>
+      <div className="flex gap-2">
+        <Button className="flex-1" variant="outline" onClick={handleCopy}>
+          {copied ? "¡Copiado!" : "Copiar credenciales"}
+        </Button>
+        <Button className="flex-1" onClick={onClose}>Entendido</Button>
+      </div>
     </div>
   );
 }
