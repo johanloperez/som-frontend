@@ -46,6 +46,8 @@ export default function TenantsPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ displayName: "", legalName: "", taxId: "", adminEmail: "", adminFullName: "", country: "", region: "", city: "", streetLine1: "", postalCode: "" });
   const [planId, setPlanId] = useState<string>("");
+  const [paymentType, setPaymentType] = useState("bank_transfer");
+  const [paymentLabel, setPaymentLabel] = useState("");
   const [generatedPwd, setGeneratedPwd] = useState("");
   const [credentials, setCredentials] = useState<{ email: string; password: string; tenantCode?: string } | null>(null);
   const [sendEmail, setSendEmail] = useState(false);
@@ -79,6 +81,8 @@ export default function TenantsPage() {
   const openModal = () => {
     setForm({ displayName: "", legalName: "", taxId: "", adminEmail: "", adminFullName: "", country: "", region: "", city: "", streetLine1: "", postalCode: "" });
     setPlanId(plans[0]?.id ?? "");
+    setPaymentType("bank_transfer");
+    setPaymentLabel("");
     setError("");
     setSelectedCountryId("");
     setRegions([]);
@@ -91,6 +95,10 @@ export default function TenantsPage() {
 
   const create = async () => {
     setError("");
+    if (!form.displayName.trim()) { setError("El nombre comercial es requerido"); return; }
+    if (!form.adminEmail.trim()) { setError("El email del administrador es requerido"); return; }
+    if (!form.adminFullName.trim()) { setError("El nombre del administrador es requerido"); return; }
+    if (planId && !paymentLabel.trim()) { setError("La referencia del método de pago es requerida"); return; }
     try {
       const slug = toSlug(form.displayName);
       const res = await api.post("/platform/tenants", {
@@ -103,6 +111,7 @@ export default function TenantsPage() {
         adminFullName: form.adminFullName,
         planId: planId || undefined,
         sendEmail,
+        paymentMethod: planId ? { type: paymentType, label: paymentLabel, isDefault: true } : undefined,
         country: form.country || undefined,
         region: form.region || undefined,
         city: form.city || undefined,
@@ -265,6 +274,21 @@ export default function TenantsPage() {
                 </select>
               </div>
             </div>
+            {planId && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Método de pago *</label>
+                  <select className="w-full border rounded-md px-3 py-2 text-sm" value={paymentType} onChange={(e) => setPaymentType(e.target.value)}>
+                    <option value="bank_transfer">Transferencia bancaria</option>
+                    <option value="credit_card">Tarjeta de crédito</option>
+                    <option value="debit_card">Tarjeta de débito</option>
+                    <option value="cash">Efectivo</option>
+                    <option value="other">Otro</option>
+                  </select>
+                </div>
+                <Input id="paymentLabel" label="Referencia / Etiqueta *" tooltip="Ej: Banco Provincial Cta 1234, o nombre de la tarjeta" value={paymentLabel} onChange={(e) => setPaymentLabel(e.target.value)} />
+              </div>
+            )}
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="text-sm font-medium mb-1 block">País</label>
