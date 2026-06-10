@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@repo/api";
-import { Button, Badge, Input, DataTable, Modal, Tooltip, type FilterConfig } from "@repo/ui";
+import { Button, Badge, Input, DataTable, Modal, Tooltip, Stepper, useToast, useRealtime, type FilterConfig } from "@repo/ui";
 import type { ColumnDef } from "@tanstack/react-table";
 
 interface Tenant {
@@ -55,6 +55,7 @@ export default function TenantsPage() {
   const [countries, setCountries] = useState<CountryData[]>([]);
   const [regions, setRegions] = useState<RegionData[]>([]);
   const [selectedCountryId, setSelectedCountryId] = useState("");
+  const [step, setStep] = useState(0);
 
   const load = async () => {
     try { const r = await api.get("/platform/tenants"); setTenants(r.data); } catch { }
@@ -74,6 +75,7 @@ export default function TenantsPage() {
   };
 
   useEffect(() => { load(); loadPlans(); loadCountries(); }, []);
+  useRealtime("tenant", "*", () => { load(); });
 
   const [statusFilter, setStatusFilter] = useState("active");
   const filteredTenants = statusFilter ? tenants.filter(t => t.subscriptionStatus === statusFilter) : tenants;
@@ -86,6 +88,7 @@ export default function TenantsPage() {
     setError("");
     setSelectedCountryId("");
     setRegions([]);
+    setStep(0);
     setOpen(true);
   };
 
@@ -250,76 +253,110 @@ export default function TenantsPage() {
           />
         ) : (
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <Input id="displayName" label="Nombre comercial *" tooltip="Nombre público del mayorista. El slug se genera automáticamente." value={form.displayName} onChange={(e) => updateField("displayName", e.target.value)} />
-              <Input id="legalName" label="Razón social" tooltip="Nombre legal registrado del mayorista" value={form.legalName} onChange={(e) => updateField("legalName", e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Input id="adminFullName" label="Nombre admin *" tooltip="Nombre completo del administrador del mayorista" value={form.adminFullName} onChange={(e) => updateField("adminFullName", e.target.value)} />
-              <Input id="adminEmail" label="Email admin *" tooltip="Correo del administrador para login" type="email" value={form.adminEmail} onChange={(e) => updateField("adminEmail", e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Input id="taxId" label="ID Fiscal" tooltip="RUC, RIF, NIF, CUIT, etc." value={form.taxId} onChange={(e) => updateField("taxId", e.target.value)} />
-              <div>
-                <label className="text-sm font-medium mb-1 block">Plan</label>
-                <select
-                  className="w-full border rounded-md px-3 py-2 text-sm"
-                  value={planId}
-                  onChange={(e) => setPlanId(e.target.value)}
-                >
-                  <option value="">Sin plan (trial)</option>
-                  {plans.map(p => (
-                    <option key={p.id} value={p.id}>{p.name} - ${p.monthlyPrice}/mes</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            {planId && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Método de pago *</label>
-                  <select className="w-full border rounded-md px-3 py-2 text-sm" value={paymentType} onChange={(e) => setPaymentType(e.target.value)}>
-                    <option value="bank_transfer">Transferencia bancaria</option>
-                    <option value="credit_card">Tarjeta de crédito</option>
-                    <option value="debit_card">Tarjeta de débito</option>
-                    <option value="cash">Efectivo</option>
-                    <option value="other">Otro</option>
-                  </select>
-                </div>
-                <Input id="paymentLabel" label="Referencia / Etiqueta *" tooltip="Ej: Banco Provincial Cta 1234, o nombre de la tarjeta" value={paymentLabel} onChange={(e) => setPaymentLabel(e.target.value)} />
+            <Stepper
+              steps={[
+                { label: "Empresa", description: "Datos del negocio" },
+                { label: "Admin", description: "Cuenta del administrador" },
+                { label: "Dirección", description: "Ubicación" },
+                { label: "Plan", description: "Suscripción y pago" },
+              ]}
+              current={step}
+            />
+
+            {step === 0 && (
+              <div className="space-y-3">
+                <Input id="displayName" label="Nombre comercial *" tooltip="Nombre público del mayorista. El slug se genera automáticamente." value={form.displayName} onChange={(e) => updateField("displayName", e.target.value)} />
+                <Input id="legalName" label="Razón social" tooltip="Nombre legal registrado del mayorista" value={form.legalName} onChange={(e) => updateField("legalName", e.target.value)} />
+                <Input id="taxId" label="ID Fiscal" tooltip="RUC, RIF, NIF, CUIT, etc." value={form.taxId} onChange={(e) => updateField("taxId", e.target.value)} />
               </div>
             )}
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="text-sm font-medium mb-1 block">País</label>
-                <select className="w-full border rounded-md px-3 py-2 text-sm" value={selectedCountryId} onChange={(e) => { const c = countries.find(x => x.id === e.target.value); setSelectedCountryId(e.target.value); setForm({ ...form, country: c?.name ?? "", region: "" }); loadRegions(e.target.value); }}>
-                  <option value="">Seleccionar...</option>
-                  {countries.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+
+            {step === 1 && (
+              <div className="space-y-3">
+                <Input id="adminFullName" label="Nombre admin *" tooltip="Nombre completo del administrador del mayorista" value={form.adminFullName} onChange={(e) => updateField("adminFullName", e.target.value)} />
+                <Input id="adminEmail" label="Email admin *" tooltip="Correo del administrador para login. Recibirá las credenciales." type="email" value={form.adminEmail} onChange={(e) => updateField("adminEmail", e.target.value)} />
               </div>
-              <div>
-                <label className="text-sm font-medium mb-1 block">Región</label>
-                {regions.length > 0 ? (
-                  <select className="w-full border rounded-md px-3 py-2 text-sm" value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })}>
-                    <option value="">Seleccionar...</option>
-                    {regions.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+            )}
+
+            {step === 2 && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">País</label>
+                    <select className="w-full border rounded-md px-3 py-2 text-sm" value={selectedCountryId} onChange={(e) => { const c = countries.find(x => x.id === e.target.value); setSelectedCountryId(e.target.value); setForm({ ...form, country: c?.name ?? "", region: "" }); loadRegions(e.target.value); }}>
+                      <option value="">Seleccionar...</option>
+                      {countries.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Región</label>
+                    {regions.length > 0 ? (
+                      <select className="w-full border rounded-md px-3 py-2 text-sm" value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })}>
+                        <option value="">Seleccionar...</option>
+                        {regions.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+                      </select>
+                    ) : (
+                      <input className="w-full border rounded-md px-3 py-2 text-sm" placeholder="Escribir región..." value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} />
+                    )}
+                  </div>
+                </div>
+                <Input id="city" label="Ciudad" tooltip="Ciudad del mayorista" value={form.city} onChange={(e) => updateField("city", e.target.value)} />
+                <Input id="streetLine1" label="Dirección" tooltip="Dirección fiscal" value={form.streetLine1} onChange={(e) => updateField("streetLine1", e.target.value)} />
+                <Input id="postalCode" label="Código Postal" tooltip="Código postal" value={form.postalCode} onChange={(e) => updateField("postalCode", e.target.value)} />
+              </div>
+            )}
+
+            {step === 3 && (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Plan</label>
+                  <select className="w-full border rounded-md px-3 py-2 text-sm" value={planId} onChange={(e) => setPlanId(e.target.value)}>
+                    <option value="">Sin plan (trial)</option>
+                    {plans.map(p => (<option key={p.id} value={p.id}>{p.name} — ${p.monthlyPrice}/mes</option>))}
                   </select>
-                ) : (
-                  <input className="w-full border rounded-md px-3 py-2 text-sm" placeholder="Escribir región..." value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} />
+                </div>
+                {planId && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">Método de pago *</label>
+                      <select className="w-full border rounded-md px-3 py-2 text-sm" value={paymentType} onChange={(e) => setPaymentType(e.target.value)}>
+                        <option value="bank_transfer">Transferencia bancaria</option>
+                        <option value="credit_card">Tarjeta de crédito</option>
+                        <option value="debit_card">Tarjeta de débito</option>
+                        <option value="cash">Efectivo</option>
+                        <option value="other">Otro</option>
+                      </select>
+                    </div>
+                    <Input id="paymentLabel" label="Referencia / Etiqueta *" tooltip="Ej: Banco Provincial Cta 1234, o nombre de la tarjeta" value={paymentLabel} onChange={(e) => setPaymentLabel(e.target.value)} />
+                  </div>
+                )}
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} className="accent-primary" />
+                  Enviar credenciales por email al administrador
+                </label>
+              </div>
+            )}
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
+
+            <div className="flex gap-2 justify-between pt-2">
+              <div>
+                {step > 0 && (
+                  <Button variant="outline" onClick={() => setStep(s => s - 1)}>
+                    Anterior
+                  </Button>
                 )}
               </div>
-              <Input id="city" label="Ciudad" tooltip="Ciudad del mayorista" value={form.city} onChange={(e) => updateField("city", e.target.value)} />
+              {step < 3 ? (
+                <Button onClick={() => setStep(s => s + 1)}>
+                  Siguiente
+                </Button>
+              ) : (
+                <Button onClick={create} className="min-w-[140px]">
+                  Crear Mayorista
+                </Button>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Input id="streetLine1" label="Dirección" tooltip="Dirección fiscal" value={form.streetLine1} onChange={(e) => updateField("streetLine1", e.target.value)} />
-              <Input id="postalCode" label="Código Postal" tooltip="Código postal" value={form.postalCode} onChange={(e) => updateField("postalCode", e.target.value)} />
-            </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} className="accent-primary" />
-              Enviar credenciales por email al administrador
-            </label>
-            <Button onClick={create} className="w-full">Crear Mayorista</Button>
           </div>
         )}
       </Modal>

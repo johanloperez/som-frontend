@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@repo/api";
-import { Button, Input, DataTable, Modal, Tooltip, type FilterConfig } from "@repo/ui";
+import { Button, Input, DataTable, Modal, Tooltip, Stepper, useRealtime, type FilterConfig } from "@repo/ui";
 import type { ColumnDef } from "@tanstack/react-table";
 
 interface Plan {
@@ -29,12 +29,14 @@ export default function PlansPage() {
   const [editing, setEditing] = useState<Plan | null>(null);
   const [form, setForm] = useState({ name: "", monthlyPrice: 0, yearlyPrice: 0, maxUsers: 5, maxSellers: 3, maxProducts: 100, maxStorageMb: 100, maxCampaignsPerMonth: 5, backupEnabled: true, includesDirectoryListing: true, pushNotificationsEnabled: false, reportsEnabled: false, publicationsEnabled: false, exportFormats: "csv" });
   const [error, setError] = useState("");
+  const [step, setStep] = useState(0);
 
   const load = async () => {
     try { const r = await api.get("/platform/subscription-plans"); setPlans(r.data); } catch { }
   };
 
   useEffect(() => { load(); }, []);
+  useRealtime("plan", "*", () => { load(); });
 
   // Sync form when editing changes
   useEffect(() => {
@@ -50,7 +52,7 @@ export default function PlansPage() {
     }
   }, [editing]);
 
-  const openCreate = () => { setEditing(null); setForm({ name: "", monthlyPrice: 0, yearlyPrice: 0, maxUsers: 5, maxSellers: 3, maxProducts: 100, maxStorageMb: 100, maxCampaignsPerMonth: 5, backupEnabled: true, includesDirectoryListing: true, pushNotificationsEnabled: false, reportsEnabled: false, publicationsEnabled: false, exportFormats: "csv" }); setOpen(true); };
+  const openCreate = () => { setEditing(null); setStep(0); setForm({ name: "", monthlyPrice: 0, yearlyPrice: 0, maxUsers: 5, maxSellers: 3, maxProducts: 100, maxStorageMb: 100, maxCampaignsPerMonth: 5, backupEnabled: true, includesDirectoryListing: true, pushNotificationsEnabled: false, reportsEnabled: false, publicationsEnabled: false, exportFormats: "csv" }); setOpen(true); };
   const openEdit = (p: Plan) => { setEditing(p); setForm({ name: p.name, monthlyPrice: p.monthlyPrice, yearlyPrice: p.yearlyPrice, maxUsers: p.maxUsers, maxSellers: p.maxSellers, maxProducts: p.maxProducts, maxStorageMb: p.maxStorageMb, maxCampaignsPerMonth: p.maxCampaignsPerMonth, backupEnabled: p.backupEnabled, includesDirectoryListing: p.includesDirectoryListing, pushNotificationsEnabled: p.pushNotificationsEnabled, reportsEnabled: p.reportsEnabled, publicationsEnabled: p.publicationsEnabled, exportFormats: p.exportFormats }); setOpen(true); };
 
   const save = async () => {
@@ -106,47 +108,152 @@ export default function PlansPage() {
       <DataTable columns={columns} data={plans} filters={filters} searchable={true} pagination={true} />
 
       <Modal open={open} onClose={() => setOpen(false)} title={editing ? "Editar Plan" : "Nuevo Plan"}>
-        <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
-          <Input id="name" label="Nombre" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <div className="grid grid-cols-2 gap-3">
-            <Input id="monthlyPrice" label="Precio mensual" type="number" value={form.monthlyPrice} onChange={(e) => setForm({ ...form, monthlyPrice: Number(e.target.value) })} />
-            <Input id="yearlyPrice" label="Precio anual" type="number" value={form.yearlyPrice} onChange={(e) => setForm({ ...form, yearlyPrice: Number(e.target.value) })} />
+        {editing ? (
+          <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+            <Input id="name" label="Nombre" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <div className="grid grid-cols-2 gap-3">
+              <Input id="monthlyPrice" label="Precio mensual" type="number" value={form.monthlyPrice} onChange={(e) => setForm({ ...form, monthlyPrice: Number(e.target.value) })} />
+              <Input id="yearlyPrice" label="Precio anual" type="number" value={form.yearlyPrice} onChange={(e) => setForm({ ...form, yearlyPrice: Number(e.target.value) })} />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <Input id="maxUsers" label="Máx. usuarios" type="number" value={form.maxUsers} onChange={(e) => setForm({ ...form, maxUsers: Number(e.target.value) })} />
+              <Input id="maxSellers" label="Máx. vendedores" type="number" value={form.maxSellers} onChange={(e) => setForm({ ...form, maxSellers: Number(e.target.value) })} />
+              <Input id="maxProducts" label="Máx. productos" type="number" value={form.maxProducts} onChange={(e) => setForm({ ...form, maxProducts: Number(e.target.value) })} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Input id="maxStorageMb" label="Almacenamiento (MB)" type="number" value={form.maxStorageMb} onChange={(e) => setForm({ ...form, maxStorageMb: Number(e.target.value) })} />
+              <Input id="maxCampaignsPerMonth" label="Campañas/mes" type="number" value={form.maxCampaignsPerMonth} onChange={(e) => setForm({ ...form, maxCampaignsPerMonth: Number(e.target.value) })} />
+            </div>
+            <Input id="exportFormats" label="Formatos de exportación" value={form.exportFormats} onChange={(e) => setForm({ ...form, exportFormats: e.target.value })} />
+            <div className="space-y-2 pt-2 border-t">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={form.backupEnabled} onChange={(e) => setForm({ ...form, backupEnabled: e.target.checked })} className="accent-primary" />
+                Backups habilitados
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={form.includesDirectoryListing} onChange={(e) => setForm({ ...form, includesDirectoryListing: e.target.checked })} className="accent-primary" />
+                Listado en directorio
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={form.pushNotificationsEnabled} onChange={(e) => setForm({ ...form, pushNotificationsEnabled: e.target.checked })} className="accent-primary" />
+                Notificaciones push
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={form.reportsEnabled} onChange={(e) => setForm({ ...form, reportsEnabled: e.target.checked })} className="accent-primary" />
+                Reportes
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={form.publicationsEnabled} onChange={(e) => setForm({ ...form, publicationsEnabled: e.target.checked })} className="accent-primary" />
+                Publicaciones
+              </label>
+            </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Button onClick={save} className="w-full">Actualizar</Button>
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            <Input id="maxUsers" label="Máx. usuarios" type="number" value={form.maxUsers} onChange={(e) => setForm({ ...form, maxUsers: Number(e.target.value) })} />
-            <Input id="maxSellers" label="Máx. vendedores" type="number" value={form.maxSellers} onChange={(e) => setForm({ ...form, maxSellers: Number(e.target.value) })} />
-            <Input id="maxProducts" label="Máx. productos" type="number" value={form.maxProducts} onChange={(e) => setForm({ ...form, maxProducts: Number(e.target.value) })} />
+        ) : (
+          <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+            <Stepper steps={[
+              { label: "Información" },
+              { label: "Límites" },
+              { label: "Características" },
+              { label: "Confirmar" },
+            ]} current={step} />
+            {(() => {
+              if (step === 0) return (
+                <div className="space-y-3">
+                  <Input id="name" label="Nombre" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input id="monthlyPrice" label="Precio mensual" type="number" value={form.monthlyPrice} onChange={(e) => setForm({ ...form, monthlyPrice: Number(e.target.value) })} />
+                    <Input id="yearlyPrice" label="Precio anual" type="number" value={form.yearlyPrice} onChange={(e) => setForm({ ...form, yearlyPrice: Number(e.target.value) })} />
+                  </div>
+                </div>
+              );
+              if (step === 1) return (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-2">
+                    <Input id="maxUsers" label="Máx. usuarios" type="number" value={form.maxUsers} onChange={(e) => setForm({ ...form, maxUsers: Number(e.target.value) })} />
+                    <Input id="maxSellers" label="Máx. vendedores" type="number" value={form.maxSellers} onChange={(e) => setForm({ ...form, maxSellers: Number(e.target.value) })} />
+                    <Input id="maxProducts" label="Máx. productos" type="number" value={form.maxProducts} onChange={(e) => setForm({ ...form, maxProducts: Number(e.target.value) })} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input id="maxStorageMb" label="Almacenamiento (MB)" type="number" value={form.maxStorageMb} onChange={(e) => setForm({ ...form, maxStorageMb: Number(e.target.value) })} />
+                    <Input id="maxCampaignsPerMonth" label="Campañas/mes" type="number" value={form.maxCampaignsPerMonth} onChange={(e) => setForm({ ...form, maxCampaignsPerMonth: Number(e.target.value) })} />
+                  </div>
+                </div>
+              );
+              if (step === 2) return (
+                <div className="space-y-3">
+                  <Input id="exportFormats" label="Formatos de exportación" value={form.exportFormats} onChange={(e) => setForm({ ...form, exportFormats: e.target.value })} />
+                  <div className="space-y-2 pt-2 border-t">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={form.backupEnabled} onChange={(e) => setForm({ ...form, backupEnabled: e.target.checked })} className="accent-primary" />
+                      Backups habilitados
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={form.includesDirectoryListing} onChange={(e) => setForm({ ...form, includesDirectoryListing: e.target.checked })} className="accent-primary" />
+                      Listado en directorio
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={form.pushNotificationsEnabled} onChange={(e) => setForm({ ...form, pushNotificationsEnabled: e.target.checked })} className="accent-primary" />
+                      Notificaciones push
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={form.reportsEnabled} onChange={(e) => setForm({ ...form, reportsEnabled: e.target.checked })} className="accent-primary" />
+                      Reportes
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={form.publicationsEnabled} onChange={(e) => setForm({ ...form, publicationsEnabled: e.target.checked })} className="accent-primary" />
+                      Publicaciones
+                    </label>
+                  </div>
+                </div>
+              );
+              if (step === 3) return (
+                <div className="rounded-md border p-3 space-y-1 text-sm">
+                  <p><strong>Nombre:</strong> {form.name}</p>
+                  <p><strong>Precio mensual:</strong> ${form.monthlyPrice}</p>
+                  <p><strong>Precio anual:</strong> ${form.yearlyPrice}</p>
+                  <p><strong>Usuarios:</strong> {form.maxUsers}</p>
+                  <p><strong>Vendedores:</strong> {form.maxSellers}</p>
+                  <p><strong>Productos:</strong> {form.maxProducts}</p>
+                  <p><strong>Almacenamiento:</strong> {form.maxStorageMb} MB</p>
+                  <p><strong>Campañas/mes:</strong> {form.maxCampaignsPerMonth}</p>
+                </div>
+              );
+            })()}
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <div className="flex gap-2 justify-between">
+              <div>
+                {step > 0 && <Button variant="outline" onClick={() => setStep(step - 1)}>Atrás</Button>}
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+                {step < 3 ? (
+                  <Button onClick={() => {
+                    const errs: string[] = [];
+                    if (step === 0) {
+                      if (!form.name.trim()) errs.push("Nombre requerido");
+                      if (form.monthlyPrice <= 0) errs.push("Precio mensual debe ser mayor a 0");
+                      if (form.yearlyPrice <= 0) errs.push("Precio anual debe ser mayor a 0");
+                    }
+                    if (step === 1) {
+                      if (form.maxUsers <= 0) errs.push("Máx. usuarios debe ser mayor a 0");
+                      if (form.maxSellers <= 0) errs.push("Máx. vendedores debe ser mayor a 0");
+                      if (form.maxProducts <= 0) errs.push("Máx. productos debe ser mayor a 0");
+                      if (form.maxStorageMb <= 0) errs.push("Almacenamiento debe ser mayor a 0");
+                      if (form.maxCampaignsPerMonth <= 0) errs.push("Campañas/mes debe ser mayor a 0");
+                    }
+                    if (errs.length) { setError(errs.join(". ")); return; }
+                    setError("");
+                    setStep(step + 1);
+                  }}>Continuar</Button>
+                ) : (
+                  <Button onClick={save}>Crear Plan</Button>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Input id="maxStorageMb" label="Almacenamiento (MB)" type="number" value={form.maxStorageMb} onChange={(e) => setForm({ ...form, maxStorageMb: Number(e.target.value) })} />
-            <Input id="maxCampaignsPerMonth" label="Campañas/mes" type="number" value={form.maxCampaignsPerMonth} onChange={(e) => setForm({ ...form, maxCampaignsPerMonth: Number(e.target.value) })} />
-          </div>
-          <Input id="exportFormats" label="Formatos de exportación" value={form.exportFormats} onChange={(e) => setForm({ ...form, exportFormats: e.target.value })} />
-          <div className="space-y-2 pt-2 border-t">
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={form.backupEnabled} onChange={(e) => setForm({ ...form, backupEnabled: e.target.checked })} className="accent-primary" />
-              Backups habilitados
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={form.includesDirectoryListing} onChange={(e) => setForm({ ...form, includesDirectoryListing: e.target.checked })} className="accent-primary" />
-              Listado en directorio
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={form.pushNotificationsEnabled} onChange={(e) => setForm({ ...form, pushNotificationsEnabled: e.target.checked })} className="accent-primary" />
-              Notificaciones push
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={form.reportsEnabled} onChange={(e) => setForm({ ...form, reportsEnabled: e.target.checked })} className="accent-primary" />
-              Reportes
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={form.publicationsEnabled} onChange={(e) => setForm({ ...form, publicationsEnabled: e.target.checked })} className="accent-primary" />
-              Publicaciones
-            </label>
-          </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button onClick={save} className="w-full">{editing ? "Actualizar" : "Crear"}</Button>
-        </div>
+        )}
       </Modal>
     </div>
   );

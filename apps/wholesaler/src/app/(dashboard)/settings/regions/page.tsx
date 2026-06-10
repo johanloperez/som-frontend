@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@repo/api";
-import { Button, Badge, Input, DataTable, Modal, useAuth } from "@repo/ui";
+import { Button, Badge, Input, DataTable, Modal, useAuth, useRealtime } from "@repo/ui";
 import type { ColumnDef } from "@tanstack/react-table";
 
 interface RegionData {
@@ -57,6 +57,7 @@ export default function RegionsPage() {
   };
 
   useEffect(() => { load(); loadCountries(); }, [slug]);
+  useRealtime("region", "*", () => { load(); });
 
   const loadProvinces = async (countryId: string) => {
     try {

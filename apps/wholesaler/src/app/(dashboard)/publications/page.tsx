@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@repo/api";
-import { Button, Badge, Input, Card, CardHeader, CardTitle, CardContent, Modal, useAuth } from "@repo/ui";
+import { Button, Badge, Input, Card, CardHeader, CardTitle, CardContent, Modal, useAuth, useRealtime } from "@repo/ui";
 import { Plus, Trash2, GripVertical } from "lucide-react";
 
 interface Publication {
@@ -44,6 +44,7 @@ export default function PublicationsPage() {
   };
 
   useEffect(() => { load(); }, [slug]);
+  useRealtime("publication", "*", () => { load(); });
 
   const openCreate = () => { setEditId(null); setForm({ title: "", description: "", contactPhone: "", contactEmail: "", status: "active" }); setPhotos([""]); setTargetProvinces([""]); setError(""); setModal(true); };
   const openEdit = (p: Publication) => { setEditId(p.id); setForm({ title: p.title, description: p.description, contactPhone: p.contactPhone ?? "", contactEmail: p.contactEmail ?? "", status: p.status }); setPhotos(p.photoUrls.length ? p.photoUrls : [""]); setTargetProvinces(p.targetProvinces.length ? p.targetProvinces : [""]); setError(""); setModal(true); };

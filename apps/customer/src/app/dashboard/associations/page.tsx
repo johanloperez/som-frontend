@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@repo/api";
-import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Modal } from "@repo/ui";
+import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Modal, useRealtime } from "@repo/ui";
 import { useRouter } from "next/navigation";
 
 interface Association {
@@ -48,6 +48,7 @@ export default function AssociationsPage() {
   };
 
   useEffect(() => { load(); }, []);
+  useRealtime("association", "*", () => { load(); });
 
   const entrar = async (tenant: TenantInfo) => {
     try {

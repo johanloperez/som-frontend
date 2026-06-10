@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@repo/api";
-import { Button, Input, DataTable, Modal, Badge, Tooltip, type FilterConfig } from "@repo/ui";
+import { Button, Input, DataTable, Modal, Badge, Tooltip, useRealtime, type FilterConfig } from "@repo/ui";
 import type { ColumnDef } from "@tanstack/react-table";
 
 interface Role {
@@ -35,6 +35,7 @@ export default function RolesPage() {
   };
 
   useEffect(() => { loadSafe(); }, []);
+  useRealtime("role", "*", () => { loadSafe(); });
 
   const create = async () => {
     setError("");

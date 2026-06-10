@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@repo/api";
-import { DataTable, Button, Modal, Input, Badge, useAuth, type FilterConfig } from "@repo/ui";
+import { DataTable, Button, Modal, Input, Badge, useAuth, useRealtime, type FilterConfig } from "@repo/ui";
 import type { ColumnDef } from "@tanstack/react-table";
 
 interface Customer {
@@ -52,6 +52,7 @@ export default function WholesalerCustomersPage() {
   };
 
   useEffect(() => { load(); }, [slug]);
+  useRealtime("customer", "*", () => { load(); });
 
   const openCreate = () => {
     setEditId(null);

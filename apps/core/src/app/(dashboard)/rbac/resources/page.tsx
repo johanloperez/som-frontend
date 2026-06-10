@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@repo/api";
-import { Button, Input, DataTable, Modal, Tooltip, type FilterConfig } from "@repo/ui";
+import { Button, Input, DataTable, Modal, Tooltip, useToast, useRealtime, type FilterConfig } from "@repo/ui";
 import type { ColumnDef } from "@tanstack/react-table";
 
 interface Resource {
@@ -13,6 +13,7 @@ interface Resource {
 }
 
 export default function ResourcesPage() {
+  const { toast } = useToast();
   const [resources, setResources] = useState<Resource[]>([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ code: "", group: "", description: "" });
@@ -23,6 +24,7 @@ export default function ResourcesPage() {
   };
 
   useEffect(() => { load(); }, []);
+  useRealtime("resource", "*", () => { load(); });
 
   const create = async () => {
     setError("");
@@ -34,9 +36,16 @@ export default function ResourcesPage() {
     } catch (e: any) { setError(e?.response?.data?.error ?? "Error"); }
   };
 
-  const remove = async (id: string) => {
-    if (!confirm("¿Eliminar recurso?")) return;
-    try { await api.delete(`/platform/resources/${id}`); load(); } catch { }
+  const remove = async (id: string, code: string) => {
+    const prev = [...resources];
+    setResources(prev.filter(r => r.id !== id));
+    try {
+      await api.delete(`/platform/resources/${id}`);
+      toast("success", `Recurso ${code} eliminado`);
+    } catch {
+      setResources(prev);
+      toast("error", "Error al eliminar recurso");
+    }
   };
 
   const columns: ColumnDef<Resource>[] = [
@@ -46,7 +55,7 @@ export default function ResourcesPage() {
     {
       id: "actions",
       cell: ({ row }) => (
-        <Button size="sm" variant="destructive" onClick={() => remove(row.original.id)}>Eliminar</Button>
+          <Button size="sm" variant="destructive" onClick={() => remove(row.original.id, row.original.code)}>Eliminar</Button>
       ),
     },
   ];

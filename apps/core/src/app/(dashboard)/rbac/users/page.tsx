@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@repo/api";
-import { Button, Input, DataTable, Modal, Badge, Tooltip, type FilterConfig } from "@repo/ui";
+import { Button, Input, DataTable, Modal, Badge, Tooltip, useRealtime, type FilterConfig } from "@repo/ui";
 import type { ColumnDef } from "@tanstack/react-table";
 
 interface CoreUser {
@@ -31,6 +31,7 @@ export default function UsersPage() {
   };
 
   useEffect(() => { load(); }, []);
+  useRealtime("user", "*", () => { load(); });
 
   const create = async () => {
     setError("");

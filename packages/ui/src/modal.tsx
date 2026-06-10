@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 
 interface ModalProps {
   open: boolean;
@@ -28,19 +29,19 @@ export function Modal({ open, onClose, title, description, children }: ModalProp
   if (!open) return null;
 
   return createPortal(
-    <div ref={ref} style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)" }} onClick={onClose} />
-      <div style={{ position: "relative", zIndex: 10000, width: "100%", maxWidth: "32rem", borderRadius: "1rem", backgroundColor: "var(--color-background, #fff)", padding: "1.5rem", boxShadow: "0 20px 60px rgba(0,0,0,0.15)", color: "var(--color-foreground, #000)" }}>
-        <div style={{ marginBottom: "1rem" }}>
-          <h2 style={{ fontSize: "1.125rem", fontWeight: 600 }}>{title}</h2>
-          {description && <p style={{ fontSize: "0.875rem", color: "var(--color-muted-foreground, #666)", marginTop: "0.25rem" }}>{description}</p>}
+    <div ref={ref} className="fixed inset-0 z-[9999] flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-[10000] w-full max-w-lg rounded-2xl bg-card shadow-xl border border-border/50 p-6 mx-4">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold">{title}</h2>
+          {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
         </div>
         {children}
         <button
           onClick={onClose}
-          style={{ position: "absolute", right: "1rem", top: "1rem", borderRadius: "0.25rem", opacity: 0.7, background: "none", border: "none", cursor: "pointer", color: "var(--color-foreground, #000)" }}
+          className="absolute right-4 top-4 rounded-lg p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          <X size={16} />
         </button>
       </div>
     </div>,

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@repo/api";
-import { Card, CardHeader, CardTitle, CardContent, Badge, Button, Modal, Input, Tooltip, useAuth, DataTable, type FilterConfig } from "@repo/ui";
+import { Card, CardHeader, CardTitle, CardContent, Badge, Button, Modal, Input, Tooltip, useAuth, DataTable, useRealtime, type FilterConfig } from "@repo/ui";
 import type { ColumnDef } from "@tanstack/react-table";
 
 interface SubscriptionInfo {
@@ -133,6 +133,7 @@ export default function BillingPage() {
    };
 
    useEffect(() => { load(); }, [slug]);
+   useRealtime("subscription", "*", () => { load(); });
 
   if (loading) return <p>Cargando...</p>;
 
@@ -237,6 +238,21 @@ export default function BillingPage() {
               </div>
             </div>
             <p className="text-sm text-muted-foreground mt-4 italic">{statusDescriptions[sub.status]}</p>
+            <div className="mt-6 pt-5 border-t border-border">
+              <Button variant="outline" size="sm">Modificar Plan</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {sub && (
+        <Card className="border-destructive/30">
+          <CardHeader>
+            <CardTitle className="text-base text-destructive">Zona de Peligro</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">Cancelar la suscripción desactivará el acceso al final del período vigente. Esta acción no se puede deshacer.</p>
+            <Button variant="destructive" size="sm">Cancelar Suscripción</Button>
           </CardContent>
         </Card>
       )}

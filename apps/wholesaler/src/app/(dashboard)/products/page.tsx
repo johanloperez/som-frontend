@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@repo/api";
-import { Button, Badge, Input, DataTable, Modal, Card, CardHeader, CardTitle, CardContent, Tooltip, useAuth, type FilterConfig } from "@repo/ui";
+import { Button, Badge, Input, DataTable, Modal, Card, CardHeader, CardTitle, CardContent, Tooltip, useAuth, useRealtime, type FilterConfig } from "@repo/ui";
 import type { ColumnDef } from "@tanstack/react-table";
 
 interface Product {
@@ -88,6 +88,7 @@ export default function ProductsPage() {
   };
 
   useEffect(() => { load(); }, [slug]);
+  useRealtime("product", "*", () => { load(); });
 
   const openCreate = () => { setEditing(null); setForm(emptyForm); setError(""); setOpen(true); };
   const openEdit = (p: Product) => {

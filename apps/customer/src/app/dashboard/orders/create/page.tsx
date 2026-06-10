@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@repo/api";
-import { Button, Badge, Input, Card, CardHeader, CardTitle, CardContent, DataTable, useAuth } from "@repo/ui";
+import { Button, Badge, Input, Card, CardHeader, CardTitle, CardContent, DataTable, useAuth, useRealtime } from "@repo/ui";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useRouter } from "next/navigation";
 
@@ -50,6 +50,7 @@ export default function CreateOrderPage() {
   };
 
   useEffect(() => { load(); }, [slug]);
+  useRealtime("product", "*", () => { load(); });
 
   const addToCart = (p: Product) => {
     const existing = cart.find(i => i.product.id === p.id);

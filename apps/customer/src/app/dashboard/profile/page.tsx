@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@repo/api";
-import { Button, Input, Card, CardHeader, CardTitle, CardContent, useAuth } from "@repo/ui";
+import { Button, Input, Card, CardHeader, CardTitle, CardContent, useAuth, useRealtime } from "@repo/ui";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -26,6 +26,7 @@ export default function ProfilePage() {
   };
 
   useEffect(() => { load(); }, []);
+  useRealtime("customer-profile", "*", () => { load(); });
 
   const save = async () => {
     setError(""); setSuccess("");

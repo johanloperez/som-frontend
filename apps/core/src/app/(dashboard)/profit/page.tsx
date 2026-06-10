@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@repo/api";
-import { Card, CardHeader, CardTitle, CardContent, Badge, Button, DataTable, type FilterConfig } from "@repo/ui";
+import { Card, CardHeader, CardTitle, CardContent, Badge, Button, DataTable, useRealtime, type FilterConfig } from "@repo/ui";
 import type { ColumnDef } from "@tanstack/react-table";
 
 interface ProfitSummary {
@@ -105,6 +105,7 @@ export default function ProfitPage() {
   };
 
   useEffect(() => { load(); }, [startDate, endDate]);
+  useRealtime("profit", "*", () => { load(); });
 
   const exportCsv = async () => {
     try {

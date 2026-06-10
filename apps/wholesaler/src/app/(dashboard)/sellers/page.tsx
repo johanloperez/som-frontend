@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@repo/api";
-import { Button, Badge, Input, DataTable, Modal, useAuth } from "@repo/ui";
+import { Button, Badge, Input, DataTable, Modal, useAuth, useRealtime } from "@repo/ui";
 import type { ColumnDef } from "@tanstack/react-table";
 
 interface Seller {
@@ -60,6 +60,7 @@ export default function SellersPage() {
   };
 
   useEffect(() => { load(); }, [slug]);
+  useRealtime("seller", "*", () => { load(); });
 
   const openCreate = () => { setEditId(null); setForm({ fullName: "", email: "", phoneE164: "", region: "" }); setError(""); setModal(true); };
   const openEdit = (s: Seller) => { setEditId(s.id); setForm({ fullName: s.fullName, email: s.email ?? "", phoneE164: s.phoneE164 ?? "", region: s.region ?? "" }); setError(""); setModal(true); };

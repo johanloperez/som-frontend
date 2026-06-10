@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@repo/api";
-import { Button, Badge, Card, CardHeader, CardTitle, CardContent, Input, Modal, useAuth } from "@repo/ui";
+import { Button, Badge, Card, CardHeader, CardTitle, CardContent, Input, Modal, useAuth, useRealtime } from "@repo/ui";
 import Link from "next/link";
 
 interface OrderItem {
@@ -62,6 +62,7 @@ export default function MyOrdersPage() {
   };
 
   useEffect(() => { load(); loadToken(); }, [slug]);
+  useRealtime("order", "*", () => { load(); });
 
   const cancelOrder = async (id: string) => {
     try { await api.post(`${basePath}/orders/${id}/cancel`); load(); } catch (e: any) { setError(e?.response?.data?.error ?? "Error"); }

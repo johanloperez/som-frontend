@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AuthProvider, useAuth, Sidebar, LoadingOverlay, type SidebarGroup } from "@repo/ui";
+import { AuthProvider, useAuth, Sidebar, LoadingOverlay, RealtimeProvider, type SidebarGroup } from "@repo/ui";
 import { api } from "@repo/api";
 import { LayoutDashboard, Handshake, ShoppingCart, User, Key, Search } from "lucide-react";
 
@@ -39,5 +39,5 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return <AuthProvider><DashboardInner>{children}</DashboardInner></AuthProvider>;
+  return <AuthProvider><RealtimeProvider getToken={() => typeof window !== "undefined" ? sessionStorage.getItem("access_token") : null}><DashboardInner>{children}</DashboardInner></RealtimeProvider></AuthProvider>;
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@repo/api";
-import { Button, Badge, Input, Card, CardContent } from "@repo/ui";
+import { Button, Badge, Input, Card, CardContent, useRealtime } from "@repo/ui";
 import { ChevronLeft, ChevronRight, Phone, Mail, Link2, Search } from "lucide-react";
 
 interface Publication {
@@ -43,6 +43,7 @@ export default function WholesalersFeedPage() {
   };
 
   useEffect(() => { load(); }, []);
+  useRealtime("publication", "*", () => { load(); });
 
   const claimCode = async () => {
     if (!codeSearch.trim()) { setCodeError("Ingresa un código"); return; }

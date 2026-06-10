@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@repo/api";
-import { Card, CardHeader, CardTitle, CardContent, Badge, Button, Tooltip, Modal, Input } from "@repo/ui";
+import { Card, CardHeader, CardTitle, CardContent, Badge, Button, Tooltip, Modal, Input, useRealtime } from "@repo/ui";
 
 interface TenantDetail {
    id: string;
@@ -199,6 +199,7 @@ const [editModal, setEditModal] = useState(false);
   useEffect(() => { if (sub) loadBilling(); }, [sub?.id]);
 
   useEffect(() => { load(); }, [tenantId]);
+  useRealtime("tenant", "*", () => { load(); });
 
   const triggerBackup = async () => {
     try { await api.post(`/platform/tenants/${tenantId}/backups/trigger?type=manual`); } catch { /* ignore */ }

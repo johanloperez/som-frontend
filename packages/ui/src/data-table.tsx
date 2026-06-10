@@ -12,6 +12,7 @@ import {
 } from "@tanstack/react-table";
 import { useState } from "react";
 import { cn } from "./cn";
+import { Button } from "./button";
 
 export interface FilterOption {
   value: string;
@@ -78,7 +79,6 @@ export function DataTable<TData>({
 
   return (
     <div className="space-y-4">
-      {/* Toolbar: Búsqueda y Filtros */}
       {(searchable || filters.length > 0) && (
         <div className="flex flex-wrap gap-3 items-center">
           {searchable && (
@@ -87,7 +87,7 @@ export function DataTable<TData>({
               placeholder={searchPlaceholder}
               value={globalFilter ?? ""}
               onChange={(e) => setGlobalFilter(e.target.value)}
-              className="flex h-9 w-full max-w-sm rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="flex h-9 w-full max-w-sm rounded-lg border border-input bg-background px-3 py-1 text-sm transition-all placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring"
             />
           )}
           {filters.map((filter) => {
@@ -97,7 +97,7 @@ export function DataTable<TData>({
                   key={filter.column}
                   value={(table.getColumn(filter.column)?.getFilterValue() as string) ?? ""}
                   onChange={(e) => table.getColumn(filter.column)?.setFilterValue(e.target.value || undefined)}
-                  className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="flex h-9 rounded-lg border border-input bg-background px-3 py-1 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring"
                 >
                   <option value="">{filter.label}</option>
                   {filter.options.map((opt) => (
@@ -116,7 +116,7 @@ export function DataTable<TData>({
                   placeholder={filter.placeholder || filter.label}
                   value={(table.getColumn(filter.column)?.getFilterValue() as string) ?? ""}
                   onChange={(e) => table.getColumn(filter.column)?.setFilterValue(e.target.value || undefined)}
-                  className="flex h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="flex h-9 w-full max-w-xs rounded-lg border border-input bg-background px-3 py-1 text-sm transition-all placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring"
                 />
               );
             }
@@ -128,7 +128,7 @@ export function DataTable<TData>({
                   placeholder={filter.placeholder || filter.label}
                   value={(table.getColumn(filter.column)?.getFilterValue() as string) ?? ""}
                   onChange={(e) => table.getColumn(filter.column)?.setFilterValue(e.target.value || undefined)}
-                  className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="flex h-9 rounded-lg border border-input bg-background px-3 py-1 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring"
                 />
               );
             }
@@ -137,16 +137,15 @@ export function DataTable<TData>({
         </div>
       )}
 
-      {/* Tabla */}
-      <div className="rounded-md border">
+      <div className="rounded-xl border shadow-sm overflow-hidden">
         <table className="w-full caption-bottom text-sm">
           <thead>
             {table.getHeaderGroups().map((hg) => (
-              <tr key={hg.id} className="bg-[var(--app-sidebar-bg)]">
+              <tr key={hg.id} className="bg-muted/50">
                 {hg.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="px-4 py-3 text-center align-middle font-medium cursor-pointer select-none"
+                    className="px-4 py-3.5 text-center align-middle font-semibold text-muted-foreground cursor-pointer select-none"
                     onClick={header.column.getToggleSortingHandler()}
                   >
                     {header.isPlaceholder ? null : (
@@ -163,7 +162,7 @@ export function DataTable<TData>({
           <tbody>
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                <tr key={row.id} className="transition-colors hover:bg-muted/30 even:bg-muted/10">
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="p-4 text-center align-middle truncate max-w-[250px]">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -182,13 +181,12 @@ export function DataTable<TData>({
         </table>
       </div>
 
-      {/* Paginación */}
       {pagination && (
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>Mostrar</span>
             <select
-              className="rounded-md border bg-background px-2 py-1 text-sm"
+              className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm"
               value={table.getState().pagination.pageSize}
               onChange={(e) => table.setPageSize(Number(e.target.value))}
             >
@@ -197,20 +195,22 @@ export function DataTable<TData>({
             <span>de {table.getFilteredRowModel().rows.length}</span>
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
-              className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
             >
               Anterior
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
-              className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
             >
               Siguiente
-            </button>
+            </Button>
           </div>
         </div>
       )}

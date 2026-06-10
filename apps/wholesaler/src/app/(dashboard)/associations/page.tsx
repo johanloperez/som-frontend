@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@repo/api";
-import { Card, CardHeader, CardTitle, CardContent, Button, Badge, useAuth } from "@repo/ui";
+import { Card, CardHeader, CardTitle, CardContent, Button, Badge, useAuth, useRealtime } from "@repo/ui";
 
 interface Request {
   associationId: string;
@@ -38,6 +38,7 @@ export default function AssociationsPage() {
   };
 
   useEffect(() => { load(); }, [slug]);
+  useRealtime("association-request", "*", () => { load(); });
 
   const approve = async (id: string) => {
     try {

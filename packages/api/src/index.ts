@@ -59,3 +59,4 @@ export function createClient(config?: AxiosRequestConfig): AxiosInstance {
 }
 
 export const api = createClient();
+export { realtime } from "./realtime";

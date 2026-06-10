@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { api } from "@repo/api";
-import { Button, Modal, useAuth } from "@repo/ui";
+import { Button, Modal, useAuth, useRealtime } from "@repo/ui";
 import { Users, UserCheck, Clock, ShoppingCart, Package, AlertTriangle, Archive, type LucideIcon } from "lucide-react";
 
 interface WidgetDef {
@@ -10,16 +11,17 @@ interface WidgetDef {
   label: string;
   card: number;
   icon: LucideIcon;
+  href: string;
 }
 
 const ALL_WIDGETS: WidgetDef[] = [
-  { key: "totalCustomers", label: "Total Clientes", card: 1, icon: Users },
-  { key: "linkedCustomers", label: "Clientes Vinculados", card: 2, icon: UserCheck },
-  { key: "pendingCustomers", label: "Clientes Pendientes", card: 3, icon: Clock },
-  { key: "pendingRequests", label: "Solicitudes de Vinculación", card: 4, icon: ShoppingCart },
-  { key: "totalProducts", label: "Total Productos", card: 1, icon: Package },
-  { key: "lowStock", label: "Productos Stock Bajo", card: 2, icon: AlertTriangle },
-  { key: "outOfStock", label: "Productos Sin Stock", card: 3, icon: Archive },
+  { key: "totalCustomers", label: "Total Clientes", card: 1, icon: Users, href: "/customers" },
+  { key: "linkedCustomers", label: "Clientes Vinculados", card: 2, icon: UserCheck, href: "/customers" },
+  { key: "pendingCustomers", label: "Clientes Pendientes", card: 3, icon: Clock, href: "/customers" },
+  { key: "pendingRequests", label: "Solicitudes de Vinculación", card: 4, icon: ShoppingCart, href: "/associations" },
+  { key: "totalProducts", label: "Total Productos", card: 1, icon: Package, href: "/products" },
+  { key: "lowStock", label: "Productos Stock Bajo", card: 2, icon: AlertTriangle, href: "/products" },
+  { key: "outOfStock", label: "Productos Sin Stock", card: 3, icon: Archive, href: "/products" },
 ];
 
 const STORAGE_KEY = "wholesaler_dashboard_widgets";
@@ -81,6 +83,7 @@ export default function DashboardPage() {
   };
 
   useEffect(() => { load(); }, [slug]);
+  useRealtime("customer", "*", () => { load(); });
 
   if (loading) return <p className="p-8 text-muted-foreground">Cargando...</p>;
 
@@ -96,23 +99,23 @@ export default function DashboardPage() {
         <Button variant="outline" onClick={() => setShowConfig(true)}>Personalizar</Button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
         {widgets.map((w) => {
           const Icon = w.icon;
           return (
-          <div key={w.key} className="rounded-2xl shadow-card hover:shadow-card-hover p-5 text-center transition-all duration-200"
+          <Link key={w.key} href={w.href}
+            className="rounded-xl bg-white shadow-sm hover:shadow-lg pt-6 pb-7 px-4 text-center transition-all duration-200 border-t-4 block"
             style={{
-              backgroundColor: `var(--color-card-bg)`,
-              color: `var(--color-card-text)`,
-              border: `1px solid var(--color-card-border)`,
+              borderTopColor: `var(--app-dash-card-${w.card}-border)`,
+              color: `var(--app-dash-card-${w.card}-text)`,
             }}
           >
-            <Icon size={24} className="mx-auto mb-2 opacity-70" />
-            <p className="text-xs uppercase tracking-wider font-medium opacity-70">{w.label}</p>
-            <p className="text-3xl font-bold mt-2">
+            <Icon size={30} className="mx-auto mb-3 opacity-80" style={{ color: `var(--app-dash-card-${w.card}-text)` }} />
+            <p className="text-[11px] uppercase tracking-widest font-semibold text-muted-foreground mb-2">{w.label}</p>
+            <p className="text-3xl md:text-4xl lg:text-5xl font-bold" style={{ color: `var(--app-dash-card-${w.card}-text)` }}>
               {data[w.key as keyof typeof data]}
             </p>
-          </div>
+          </Link>
         );})}
       </div>
 
