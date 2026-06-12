@@ -2,12 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { post, setSession } from "@repo/api";
+import { parseApiError, post, setSession } from "@repo/api";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import { useToast } from "@repo/ui/toast";
-import { ShoppingBag } from "lucide-react";
+import { Eye, EyeOff, ShoppingBag } from "lucide-react";
 
 function GoogleIcon() {
   return (
@@ -25,17 +25,25 @@ export default function LoginPage() {
   const toast = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
+      // Mobile keyboards often capitalize, autocorrect, or append a trailing
+      // space (especially after tapping an autofill suggestion). Normalizing
+      // here prevents a correct credential from being rejected as a 401.
       const res = await post<{
         userId: string; email: string; fullName: string; role: string; accessToken: string;
         tenantSlug: string | null;
         permissions: Array<{ code: string; scope: string | null }>;
-      }>("/auth/login", { email, password, portal: "customer" });
+      }>("/auth/login", {
+        email: email.trim().toLowerCase(),
+        password: password.trim(),
+        portal: "customer",
+      });
       setSession({
         user: {
           id: res.userId,
@@ -48,8 +56,9 @@ export default function LoginPage() {
         accessToken: res.accessToken,
       });
       router.replace("/catalog");
-    } catch {
-      toast.error("No se pudo iniciar sesión", "Verifica tus credenciales");
+    } catch (err) {
+      const { title, detail } = parseApiError(err);
+      toast.error(title, detail);
     } finally {
       setLoading(false);
     }
@@ -95,11 +104,23 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="email">Correo electrónico</Label>
-              <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="compras@minegocio.com" />
+              <Input id="email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="compras@minegocio.com" />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="password">Contraseña</Label>
-              <Input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+              <div className="relative">
+                <Input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password" autoCapitalize="none" autoCorrect="off" spellCheck={false} required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pr-10" />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  aria-pressed={showPassword}
+                  tabIndex={-1}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
             </div>
             <Button type="submit" className="w-full" loading={loading}>Iniciar sesión</Button>
           </form>
