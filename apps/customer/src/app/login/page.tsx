@@ -26,31 +26,11 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const demo = process.env.NEXT_PUBLIC_DEMO_AUTH === "true";
-
-  function loginDemo(provider: "email" | "google") {
-    setSession({
-      user: {
-        id: "demo",
-        email: email || (provider === "google" ? "minorista@gmail.com" : "compras@minegocio.com"),
-        fullName: provider === "google" ? "Bodega San Martín" : "Bodega San Martín",
-        role: "retail-customer",
-        permissions: [],
-        avatarUrl: undefined,
-      },
-      accessToken: "demo-token",
-    });
-    router.replace("/catalog");
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
-      if (demo) {
-        loginDemo("email");
-        return;
-      }
       const res = await post<{
         userId: string; email: string; fullName: string; role: string; accessToken: string;
         tenantSlug: string | null;
@@ -76,10 +56,6 @@ export default function LoginPage() {
   }
 
   function handleGoogle() {
-    if (demo) {
-      loginDemo("google");
-      return;
-    }
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     const redirect = `${window.location.origin}/login`;
     const url =

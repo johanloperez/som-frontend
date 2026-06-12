@@ -18,11 +18,3 @@ export const orderStatusTabs: { value: OrderStatus | "all"; label: string }[] = 
   { value: "delivered", label: "Entregados" },
   { value: "cancelled", label: "Cancelados" },
 ];
-
-export const countryOptions = [
-  { value: "Perú", label: "Perú" },
-  { value: "Colombia", label: "Colombia" },
-  { value: "Chile", label: "Chile" },
-  { value: "Argentina", label: "Argentina" },
-  { value: "México", label: "México" },
-];

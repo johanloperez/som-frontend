@@ -17,6 +17,23 @@ function tenantPath(path: string) {
   return `/tenant/${slug}${path}`;
 }
 
+// --- Geography (platform-level, not tenant-scoped) ---
+interface ApiCountry { id: string; name: string; code: string; }
+interface ApiRegion { id: string; name: string; }
+
+export interface CountryOption { id: string; value: string; label: string; }
+
+export const geographyApi = {
+  countries: () =>
+    unwrap<ApiCountry>(() => get<ApiList<ApiCountry>>("/geography/countries")).then((list) =>
+      list.map((c): CountryOption => ({ id: c.id, value: c.name, label: c.name })),
+    ),
+  regions: (countryId: string) =>
+    unwrap<ApiRegion>(() => get<ApiList<ApiRegion>>(`/geography/countries/${countryId}/regions`)).then((list) =>
+      list.map((r) => ({ value: r.name, label: r.name })),
+    ),
+};
+
 export const categoriesApi = {
   list: () => unwrap<Category>(() => get<ApiList<Category>>(tenantPath("/categories"))),
   get: (id: string) => get<Category>(tenantPath(`/categories/${id}`)),

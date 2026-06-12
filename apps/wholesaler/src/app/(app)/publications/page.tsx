@@ -16,6 +16,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { useToast } from "@repo/ui/toast";
 import { publicationsApi } from "@/lib/api-services";
 import { useData } from "@/lib/use-api";
+import { useAuth } from "@/lib/use-auth";
 import type { PublicationType } from "@/lib/types";
 
 const typeMeta: Record<PublicationType, { label: string; variant: "default" | "secondary" | "success" }> = {
@@ -35,6 +36,7 @@ const empty = { title: "", body: "", type: "offer" as PublicationType };
 
 export default function PublicationsPage() {
   const toast = useToast();
+  const { user } = useAuth();
   const { data: publications = [], refetch } = useData(() => publicationsApi.list());
   const [tab, setTab] = useState<PublicationType | "all">("all");
   const [open, setOpen] = useState(false);
@@ -48,7 +50,7 @@ export default function PublicationsPage() {
   async function publish() {
     await publicationsApi.create({
       ...form,
-      author: "Distribuidora Andina",
+      author: user?.fullName ?? "",
       date: new Date().toISOString().slice(0, 10),
       likes: 0,
       comments: 0,

@@ -10,13 +10,13 @@ import { Input } from "@repo/ui/input";
 import { PageHeader } from "@repo/ui/page-header";
 import { Select } from "@repo/ui/select";
 import { useToast } from "@repo/ui/toast";
-import { directoryApi } from "@/lib/api-services";
-import { countryOptions } from "@/lib/order-status";
+import { directoryApi, geographyApi } from "@/lib/api-services";
 import { useData } from "@/lib/use-api";
 
 export default function DirectoryPage() {
   const toast = useToast();
   const { data: entries = [] } = useData(() => directoryApi.list());
+  const { data: countryOptions = [] } = useData(() => geographyApi.countries());
   const [query, setQuery] = useState("");
   const [country, setCountry] = useState("");
 

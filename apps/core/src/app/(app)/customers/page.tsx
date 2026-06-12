@@ -11,15 +11,15 @@ import { DropdownMenu } from "@repo/ui/dropdown-menu";
 import { PageHeader } from "@repo/ui/page-header";
 import { Select } from "@repo/ui/select";
 import { useToast } from "@repo/ui/toast";
-import { customersApi } from "@/lib/api-services";
+import { customersApi, geographyApi } from "@/lib/api-services";
 import { useData } from "@/lib/use-api";
-import { countryOptions } from "@/lib/tenant-status";
 import type { Customer } from "@/lib/types";
 import { CustomerDialog } from "./_components/customer-dialog";
 
 export default function CustomersPage() {
   const toast = useToast();
   const { data: customers = [], refetch } = useData(() => customersApi.list());
+  const { data: countryOptions = [] } = useData(() => geographyApi.countries());
   const [country, setCountry] = useState("");
   const [dialog, setDialog] = useState<{ open: boolean; editing: Customer | null }>({
     open: false,

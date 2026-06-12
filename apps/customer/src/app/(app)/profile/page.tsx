@@ -30,10 +30,10 @@ export default function ProfilePage() {
   }, [orders]);
 
   const [form, setForm] = useState({
-    business: user?.fullName ?? "Bodega San Martín",
-    email: user?.email ?? "compras@minegocio.com",
-    phone: "+51 987 654 321",
-    address: "Av. Los Próceres 123, Lima",
+    business: user?.fullName ?? "",
+    email: user?.email ?? "",
+    phone: "",
+    address: "",
   });
   const [prefs, setPrefs] = useState({ orderUpdates: true, promos: false });
 

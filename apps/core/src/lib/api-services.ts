@@ -1,4 +1,4 @@
-import { get, post, put, del, unwrapList } from "@repo/api";
+import { get, post, put, patch, del, unwrapList } from "@repo/api";
 import type { Tenant, Plan, Customer, CoreUser, Resource, Role, PermissionGrant } from "./types";
 
 const P = "/platform";
@@ -47,7 +47,9 @@ interface ApiTenant {
   id: string; code: string; slug: string; legalName: string; displayName: string;
   taxId: string; country: string | null; region: string | null; city: string | null;
   streetLine1: string | null; postalCode: string | null;
-  createdAt: string; updatedAt: string; subscriptionStatus: string;
+  createdAt: string; updatedAt: string; subscriptionStatus?: string;
+  // Only returned by the Detail endpoint (resolved from the tenant's user DB), not by List.
+  adminEmail?: string; adminFullName?: string;
 }
 
 function mapTenant(t: ApiTenant): Tenant {
@@ -56,17 +58,70 @@ function mapTenant(t: ApiTenant): Tenant {
     name: t.displayName ?? t.legalName,
     status: (t.subscriptionStatus ?? "active") as Tenant["status"],
     taxId: t.taxId, country: t.country ?? "",
-    adminName: t.legalName, adminEmail: "",
+    adminName: t.adminFullName || t.legalName, adminEmail: t.adminEmail ?? "",
     address: [t.streetLine1, t.city, t.region].filter(Boolean).join(", ") || "",
     planId: "", planName: "", billingCycle: "monthly",
     createdAt: t.createdAt,
   };
 }
 
+export interface CreateTenantInput {
+  slug: string;
+  displayName: string;
+  legalName: string;
+  taxId?: string;
+  adminEmail: string;
+  adminFullName: string;
+  planId?: string;
+  billingType?: string;
+  country?: string;
+  region?: string;
+  city?: string;
+  streetLine1?: string;
+  postalCode?: string;
+}
+
+export interface TenantCredentials {
+  code: string;
+  adminEmail: string;
+  password: string;
+  loginUrl?: string;
+  message?: string;
+}
+
+async function createTenant(input: CreateTenantInput): Promise<TenantCredentials> {
+  const res = await post<{
+    tenant: { code: string; slug: string };
+    credentials: { email: string; password: string; tenantCode?: string; loginUrl?: string; message?: string };
+  }>(`${P}/tenants`, {
+    slug: input.slug,
+    displayName: input.displayName,
+    legalName: input.legalName,
+    taxId: input.taxId,
+    providerCode: input.slug,
+    adminEmail: input.adminEmail,
+    adminFullName: input.adminFullName,
+    planId: input.planId || undefined,
+    billingType: input.billingType ?? "monthly",
+    country: input.country,
+    region: input.region,
+    city: input.city,
+    streetLine1: input.streetLine1,
+    postalCode: input.postalCode,
+  });
+  return {
+    code: res.credentials.tenantCode ?? res.tenant.code,
+    adminEmail: res.credentials.email,
+    password: res.credentials.password,
+    loginUrl: res.credentials.loginUrl,
+    message: res.credentials.message,
+  };
+}
+
 export const tenantsApi = {
   list: () => unwrap<ApiTenant>(() => get<ApiList<ApiTenant>>(`${P}/tenants`)).then(r => r.map(mapTenant)),
   get: (id: string) => get<ApiTenant>(`${P}/tenants/${id}`).then(mapTenant),
-  create: (data: Omit<Tenant, "id">) => post<Tenant>(`${P}/tenants`, data),
+  create: createTenant,
   update: (id: string, data: Partial<Tenant>) => put<void>(`${P}/tenants/${id}`, data),
   remove: (id: string) => del<void>(`${P}/tenants/${id}`),
   updateStatus: (id: string, status: string) => put<void>(`${P}/tenants/${id}/status`, { status }),
@@ -76,6 +131,125 @@ export const tenantsApi = {
   cancelSubscription: (id: string) => post<void>(`${P}/tenants/${id}/subscription/cancel`),
   updateSubscriptionPlan: (id: string, planId: string) => put<void>(`${P}/tenants/${id}/subscription/plan`, { planId }),
   updateBillingType: (id: string, billingCycle: string) => put<void>(`${P}/tenants/${id}/subscription/billing-type`, { billingCycle }),
+};
+
+// --- Subscription (current plan for a tenant) ---
+export interface TenantSubscription {
+  id: string;
+  planId: string;
+  planName: string;
+  billingType: string; // monthly | yearly
+  status: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  currentPeriodEnd: string;
+}
+
+interface ApiSubscription {
+  id: string; planId: string; planName: string;
+  monthlyPrice: number; yearlyPrice: number;
+  status: string; billingType: string; currentPeriodEnd: string;
+}
+
+export const subscriptionApi = {
+  get: (tenantId: string) =>
+    get<ApiSubscription>(`${P}/tenants/${tenantId}/subscription`).then((s): TenantSubscription => ({
+      id: s.id, planId: s.planId, planName: s.planName,
+      billingType: s.billingType, status: s.status,
+      monthlyPrice: s.monthlyPrice, yearlyPrice: s.yearlyPrice,
+      currentPeriodEnd: (s.currentPeriodEnd ?? "").slice(0, 10),
+    })),
+  changePlan: (tenantId: string, planId: string, billingType: string) =>
+    put<unknown>(`${P}/tenants/${tenantId}/subscription/plan`, { planId, billingType, applyNow: true }),
+  changeBillingType: (tenantId: string, billingType: string) =>
+    put<unknown>(`${P}/tenants/${tenantId}/subscription/billing-type`, { billingType, applyNow: true }),
+};
+
+// --- Billing (platform view of a tenant's subscription billing) ---
+export interface BillingInvoice {
+  id: string;
+  number: string;
+  amount: number;
+  status: string; // pending | paid | rejected | overdue
+  dueDate: string;
+  paidAt?: string;
+}
+
+export interface UpcomingInvoice {
+  planName: string;
+  amount: number;
+  billingType: string;
+  estimatedDate: string;
+}
+
+export interface BillingPaymentMethod {
+  id: string;
+  type: string;
+  label: string;
+  details?: string;
+  isDefault: boolean;
+}
+
+interface ApiInvoice {
+  invoiceId: string; invoiceNumber: string; totalAmount: number;
+  status: string; dueDate: string; paidAt?: string | null;
+}
+interface ApiUpcoming {
+  subscriptionId: string; planName: string; amount: number;
+  billingType: string; estimatedDate: string;
+}
+interface ApiPaymentMethod {
+  id: string; type: string; label: string; details?: string | null; isDefault: boolean;
+}
+
+const billingBase = (tenantId: string) => `${P}/tenants/${tenantId}/billing`;
+
+function mapInvoice(i: ApiInvoice): BillingInvoice {
+  return {
+    id: i.invoiceId, number: i.invoiceNumber, amount: i.totalAmount,
+    status: i.status, dueDate: (i.dueDate ?? "").slice(0, 10),
+    paidAt: i.paidAt ?? undefined,
+  };
+}
+
+export const billingApi = {
+  invoices: (tenantId: string) =>
+    unwrap<ApiInvoice>(() => get<ApiList<ApiInvoice>>(`${billingBase(tenantId)}/invoices`)).then((r) => r.map(mapInvoice)),
+  upcoming: (tenantId: string) =>
+    get<ApiUpcoming>(`${billingBase(tenantId)}/upcoming`).then((u): UpcomingInvoice => ({
+      planName: u.planName, amount: u.amount, billingType: u.billingType,
+      estimatedDate: (u.estimatedDate ?? "").slice(0, 10),
+    })),
+  generateInvoice: (tenantId: string) => post<unknown>(`${billingBase(tenantId)}/generate-invoice`, {}),
+  confirm: (tenantId: string, invoiceId: string, amount: number) =>
+    post<void>(`${billingBase(tenantId)}/invoices/${invoiceId}/confirm`, { amount }),
+  reject: (tenantId: string, invoiceId: string, reason: string) =>
+    post<void>(`${billingBase(tenantId)}/invoices/${invoiceId}/reject`, { reason }),
+  methods: (tenantId: string) =>
+    unwrap<ApiPaymentMethod>(() => get<ApiList<ApiPaymentMethod>>(`${billingBase(tenantId)}/methods`)).then((r) =>
+      r.map((m): BillingPaymentMethod => ({ id: m.id, type: m.type, label: m.label, details: m.details ?? undefined, isDefault: m.isDefault })),
+    ),
+  addMethod: (tenantId: string, data: { type: string; label: string; details?: string; isDefault?: boolean }) =>
+    post<unknown>(`${billingBase(tenantId)}/methods`, data),
+  removeMethod: (tenantId: string, methodId: string) => del<void>(`${billingBase(tenantId)}/methods/${methodId}`),
+  setDefaultMethod: (tenantId: string, methodId: string) => patch<void>(`${billingBase(tenantId)}/methods/${methodId}/default`),
+};
+
+// --- Geography ---
+interface ApiCountry { id: string; name: string; code: string; }
+interface ApiRegion { id: string; name: string; }
+
+export interface CountryOption { id: string; value: string; label: string; }
+
+export const geographyApi = {
+  countries: () =>
+    unwrap<ApiCountry>(() => get<ApiList<ApiCountry>>("/geography/countries")).then((list) =>
+      list.map((c): CountryOption => ({ id: c.id, value: c.name, label: c.name })),
+    ),
+  regions: (countryId: string) =>
+    unwrap<ApiRegion>(() => get<ApiList<ApiRegion>>(`/geography/countries/${countryId}/regions`)).then((list) =>
+      list.map((r) => ({ value: r.name, label: r.name })),
+    ),
 };
 
 // --- Customers ---

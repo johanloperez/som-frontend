@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, CreditCard, Plus, Trash2, X } from "lucide-react";
+import { Check, CreditCard, Plus, Star, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
@@ -8,53 +8,84 @@ import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { Dialog } from "@repo/ui/dialog";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
+import { Select } from "@repo/ui/select";
 import { useToast } from "@repo/ui/toast";
+import { billingApi, type BillingInvoice } from "@/lib/api-services";
+import { useData, useDataItem } from "@/lib/use-api";
 
-interface PaymentMethod {
-  id: string;
-  brand: string;
-  last4: string;
-  exp: string;
-}
+const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-interface Invoice {
-  id: string;
-  date: string;
-  amount: number;
-  status: "paid" | "pending" | "rejected";
-}
+const methodTypeOptions = [
+  { value: "bank_transfer", label: "Transferencia bancaria" },
+  { value: "card", label: "Tarjeta" },
+  { value: "cash", label: "Efectivo" },
+  { value: "other", label: "Otro" },
+];
+const methodTypeLabel = (type: string) =>
+  methodTypeOptions.find((o) => o.value === type)?.label ?? type;
 
-export function BillingTab({ tenantName }: { tenantName: string }) {
+const invoiceStatusBadge: Record<string, React.ReactNode> = {
+  paid: <Badge variant="success">Pagada</Badge>,
+  pending: <Badge variant="warning">Pendiente</Badge>,
+  rejected: <Badge variant="destructive">Rechazada</Badge>,
+  overdue: <Badge variant="destructive">Vencida</Badge>,
+};
+
+export function BillingTab({ tenantId, tenantName }: { tenantId: string; tenantName: string }) {
   const toast = useToast();
-  const [methods, setMethods] = useState<PaymentMethod[]>([
-    { id: "pm-1", brand: "Visa", last4: "4242", exp: "08/27" },
-  ]);
-  const [invoices, setInvoices] = useState<Invoice[]>([
-    { id: "INV-0007", date: "2026-06-01", amount: 79, status: "pending" },
-    { id: "INV-0006", date: "2026-05-01", amount: 79, status: "paid" },
-    { id: "INV-0005", date: "2026-04-01", amount: 79, status: "paid" },
-  ]);
+  const { data: invoices = [], refetch: refetchInvoices } = useData(() => billingApi.invoices(tenantId), [tenantId]);
+  const { data: methods = [], refetch: refetchMethods } = useData(() => billingApi.methods(tenantId), [tenantId]);
+  const { data: upcoming, error: upcomingError } = useDataItem(() => billingApi.upcoming(tenantId), tenantId);
+
   const [addOpen, setAddOpen] = useState(false);
-  const [card, setCard] = useState({ number: "", exp: "", cvc: "" });
+  const [method, setMethod] = useState({ type: "bank_transfer", label: "", details: "" });
 
-  function addMethod() {
-    const last4 = card.number.replace(/\s/g, "").slice(-4) || "0000";
-    setMethods((m) => [...m, { id: crypto.randomUUID(), brand: "Visa", last4, exp: card.exp || "01/30" }]);
-    setAddOpen(false);
-    setCard({ number: "", exp: "", cvc: "" });
-    toast.success("Método de pago agregado");
+  async function addMethod() {
+    try {
+      await billingApi.addMethod(tenantId, {
+        type: method.type,
+        label: method.label,
+        details: method.details || undefined,
+        isDefault: methods.length === 0,
+      });
+      setAddOpen(false);
+      setMethod({ type: "bank_transfer", label: "", details: "" });
+      refetchMethods();
+      toast.success("Método de pago agregado", method.label);
+    } catch (e) {
+      toast.error("No se pudo agregar el método", e instanceof Error ? e.message : "Inténtalo de nuevo");
+    }
   }
 
-  function setInvoiceStatus(id: string, status: Invoice["status"]) {
-    setInvoices((inv) => inv.map((i) => (i.id === id ? { ...i, status } : i)));
-    toast.success(status === "paid" ? "Pago confirmado" : "Pago rechazado", id);
+  async function confirmInvoice(inv: BillingInvoice) {
+    try {
+      await billingApi.confirm(tenantId, inv.id, inv.amount);
+      refetchInvoices();
+      toast.success("Pago confirmado", inv.number);
+    } catch (e) {
+      toast.error("No se pudo confirmar", e instanceof Error ? e.message : "Inténtalo de nuevo");
+    }
   }
 
-  const statusBadge = {
-    paid: <Badge variant="success">Pagada</Badge>,
-    pending: <Badge variant="warning">Pendiente</Badge>,
-    rejected: <Badge variant="destructive">Rechazada</Badge>,
-  };
+  async function rejectInvoice(inv: BillingInvoice) {
+    try {
+      await billingApi.reject(tenantId, inv.id, "Rechazado por el administrador");
+      refetchInvoices();
+      toast.success("Pago rechazado", inv.number);
+    } catch (e) {
+      toast.error("No se pudo rechazar", e instanceof Error ? e.message : "Inténtalo de nuevo");
+    }
+  }
+
+  async function generateInvoice() {
+    try {
+      await billingApi.generateInvoice(tenantId);
+      refetchInvoices();
+      toast.success("Factura generada");
+    } catch (e) {
+      toast.error("No se pudo generar la factura", e instanceof Error ? e.message : "Inténtalo de nuevo");
+    }
+  }
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -75,22 +106,42 @@ export function BillingTab({ tenantName }: { tenantName: string }) {
               <div className="flex items-center gap-3">
                 <CreditCard className="size-5 text-primary" />
                 <div>
-                  <p className="text-sm font-medium">
-                    {m.brand} ···· {m.last4}
+                  <p className="flex items-center gap-2 text-sm font-medium">
+                    {m.label}
+                    {m.isDefault && <Badge variant="secondary">Predeterminado</Badge>}
                   </p>
-                  <p className="text-xs text-muted-foreground">Vence {m.exp}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {methodTypeLabel(m.type)}
+                    {m.details ? ` · ${m.details}` : ""}
+                  </p>
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  setMethods((arr) => arr.filter((x) => x.id !== m.id));
-                  toast.success("Método eliminado");
-                }}
-                className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                aria-label="Eliminar"
-              >
-                <Trash2 className="size-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                {!m.isDefault && (
+                  <button
+                    onClick={async () => {
+                      await billingApi.setDefaultMethod(tenantId, m.id);
+                      refetchMethods();
+                      toast.success("Método predeterminado actualizado");
+                    }}
+                    className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                    aria-label="Marcar como predeterminado"
+                  >
+                    <Star className="size-4" />
+                  </button>
+                )}
+                <button
+                  onClick={async () => {
+                    await billingApi.removeMethod(tenantId, m.id);
+                    refetchMethods();
+                    toast.success("Método eliminado");
+                  }}
+                  className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  aria-label="Eliminar"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              </div>
             </div>
           ))}
           {methods.length === 0 && (
@@ -107,13 +158,25 @@ export function BillingTab({ tenantName }: { tenantName: string }) {
           <CardTitle>Próxima factura</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-baseline justify-between">
-            <span className="text-3xl font-bold">$79.00</span>
-            <span className="text-sm text-muted-foreground">vence 2026-07-01</span>
-          </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Suscripción de {tenantName} · Plan Profesional (mensual)
-          </p>
+          {upcoming ? (
+            <>
+              <div className="flex items-baseline justify-between">
+                <span className="text-3xl font-bold">{money(upcoming.amount)}</span>
+                <span className="text-sm text-muted-foreground">vence {upcoming.estimatedDate}</span>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Suscripción de {tenantName} · Plan {upcoming.planName} (
+                {upcoming.billingType === "monthly" ? "mensual" : "anual"})
+              </p>
+              <Button variant="outline" size="sm" className="mt-3" onClick={generateInvoice}>
+                Generar factura
+              </Button>
+            </>
+          ) : (
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              {upcomingError ? "No hay suscripción activa para facturar." : "Sin factura próxima."}
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -127,7 +190,7 @@ export function BillingTab({ tenantName }: { tenantName: string }) {
             <thead>
               <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="px-6 py-2 text-left">Factura</th>
-                <th className="px-6 py-2 text-left">Fecha</th>
+                <th className="px-6 py-2 text-left">Vencimiento</th>
                 <th className="px-6 py-2 text-left">Monto</th>
                 <th className="px-6 py-2 text-left">Estado</th>
                 <th className="px-6 py-2 text-right">Acciones</th>
@@ -136,17 +199,17 @@ export function BillingTab({ tenantName }: { tenantName: string }) {
             <tbody>
               {invoices.map((inv) => (
                 <tr key={inv.id} className="border-b border-border last:border-0">
-                  <td className="px-6 py-3 font-mono text-xs">{inv.id}</td>
-                  <td className="px-6 py-3">{inv.date}</td>
-                  <td className="px-6 py-3">${inv.amount.toFixed(2)}</td>
-                  <td className="px-6 py-3">{statusBadge[inv.status]}</td>
+                  <td className="px-6 py-3 font-mono text-xs">{inv.number}</td>
+                  <td className="px-6 py-3">{inv.dueDate}</td>
+                  <td className="px-6 py-3">{money(inv.amount)}</td>
+                  <td className="px-6 py-3">{invoiceStatusBadge[inv.status] ?? <Badge variant="secondary">{inv.status}</Badge>}</td>
                   <td className="px-6 py-3">
                     {inv.status === "pending" ? (
                       <div className="flex justify-end gap-1">
-                        <Button size="sm" variant="outline" onClick={() => setInvoiceStatus(inv.id, "paid")}>
+                        <Button size="sm" variant="outline" onClick={() => confirmInvoice(inv)}>
                           <Check className="size-3.5" /> Confirmar
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setInvoiceStatus(inv.id, "rejected")}>
+                        <Button size="sm" variant="ghost" onClick={() => rejectInvoice(inv)}>
                           <X className="size-3.5" /> Rechazar
                         </Button>
                       </div>
@@ -156,6 +219,13 @@ export function BillingTab({ tenantName }: { tenantName: string }) {
                   </td>
                 </tr>
               ))}
+              {invoices.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-sm text-muted-foreground">
+                    Aún no hay facturas para este mayorista.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </CardContent>
@@ -171,28 +241,34 @@ export function BillingTab({ tenantName }: { tenantName: string }) {
             <Button variant="outline" onClick={() => setAddOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={addMethod}>Guardar</Button>
+            <Button disabled={!method.label} onClick={addMethod}>Guardar</Button>
           </>
         }
       >
         <div className="space-y-4">
           <div>
-            <Label className="mb-1.5 block">Número de tarjeta</Label>
-            <Input
-              value={card.number}
-              onChange={(e) => setCard({ ...card, number: e.target.value })}
-              placeholder="4242 4242 4242 4242"
+            <Label className="mb-1.5 block">Tipo</Label>
+            <Select
+              value={method.type}
+              onChange={(e) => setMethod({ ...method, type: e.target.value })}
+              options={methodTypeOptions}
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="mb-1.5 block">Vencimiento</Label>
-              <Input value={card.exp} onChange={(e) => setCard({ ...card, exp: e.target.value })} placeholder="MM/AA" />
-            </div>
-            <div>
-              <Label className="mb-1.5 block">CVC</Label>
-              <Input value={card.cvc} onChange={(e) => setCard({ ...card, cvc: e.target.value })} placeholder="123" />
-            </div>
+          <div>
+            <Label className="mb-1.5 block">Etiqueta</Label>
+            <Input
+              value={method.label}
+              onChange={(e) => setMethod({ ...method, label: e.target.value })}
+              placeholder="BCP Cuenta corriente"
+            />
+          </div>
+          <div>
+            <Label className="mb-1.5 block">Detalles (opcional)</Label>
+            <Input
+              value={method.details}
+              onChange={(e) => setMethod({ ...method, details: e.target.value })}
+              placeholder="N.º de cuenta, titular, etc."
+            />
           </div>
         </div>
       </Dialog>

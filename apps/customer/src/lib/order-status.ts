@@ -24,10 +24,3 @@ export const accentStyles: Record<string, { bg: string; text: string }> = {
   "accent-3": { bg: "bg-accent-3/10", text: "text-accent-3" },
   "accent-4": { bg: "bg-accent-4/10", text: "text-accent-4" },
 };
-
-export const categoryOptions = [
-  { value: "Abarrotes", label: "Abarrotes" },
-  { value: "Bebidas", label: "Bebidas" },
-  { value: "Limpieza", label: "Limpieza" },
-  { value: "Snacks", label: "Snacks" },
-];

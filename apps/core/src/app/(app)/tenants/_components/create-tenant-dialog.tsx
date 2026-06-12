@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Copy } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@repo/ui/button";
 import { Dialog } from "@repo/ui/dialog";
 import { Input } from "@repo/ui/input";
@@ -9,9 +9,8 @@ import { Label } from "@repo/ui/label";
 import { Select } from "@repo/ui/select";
 import { Stepper } from "@repo/ui/stepper";
 import { useToast } from "@repo/ui/toast";
-import { plansApi, tenantsApi } from "@/lib/api-services";
+import { geographyApi, plansApi, tenantsApi } from "@/lib/api-services";
 import { useData } from "@/lib/use-api";
-import { countryOptions } from "@/lib/tenant-status";
 
 const STEPS = ["Empresa", "Administrador", "Dirección", "Plan"];
 
@@ -27,23 +26,44 @@ interface Credentials {
   password: string;
 }
 
+const emptyForm = {
+  name: "",
+  slug: "",
+  taxId: "",
+  adminName: "",
+  adminEmail: "",
+  address: "",
+  country: "",
+  region: "",
+  planId: "",
+  billingCycle: "monthly" as "monthly" | "yearly",
+};
+
 export function CreateTenantDialog({ open, onClose, onSaved }: Props) {
   const toast = useToast();
   const { data: plans = [] } = useData(() => plansApi.list());
+  const { data: countryOptions = [] } = useData(() => geographyApi.countries());
   const [step, setStep] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
   const [credentials, setCredentials] = useState<Credentials | null>(null);
 
-  const [form, setForm] = useState({
-    name: "",
-    slug: "",
-    taxId: "",
-    adminName: "",
-    adminEmail: "",
-    address: "",
-    country: "Perú",
-    planId: "plan-pro",
-    billingCycle: "monthly" as "monthly" | "yearly",
-  });
+  const [form, setForm] = useState(emptyForm);
+
+  const countryId = countryOptions.find((c) => c.value === form.country)?.id ?? "";
+  const { data: regionOptions = [] } = useData(
+    () => (countryId ? geographyApi.regions(countryId) : Promise.resolve([])),
+    [countryId],
+  );
+
+  // Default to the first available plan/country once the lists load from the DB.
+  useEffect(() => {
+    const first = plans[0];
+    if (first && !form.planId) setForm((f) => ({ ...f, planId: first.id }));
+  }, [plans, form.planId]);
+  useEffect(() => {
+    const first = countryOptions[0];
+    if (first && !form.country) setForm((f) => ({ ...f, country: first.value }));
+  }, [countryOptions, form.country]);
 
   function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -52,10 +72,7 @@ export function CreateTenantDialog({ open, onClose, onSaved }: Props) {
   function reset() {
     setStep(0);
     setCredentials(null);
-    setForm({
-      name: "", slug: "", taxId: "", adminName: "", adminEmail: "",
-      address: "", country: "Perú", planId: "plan-pro", billingCycle: "monthly",
-    });
+    setForm(emptyForm);
   }
 
   function handleClose() {
@@ -70,30 +87,33 @@ export function CreateTenantDialog({ open, onClose, onSaved }: Props) {
     step === 3;
 
   async function submit() {
-    const plan = plans.find((p) => p.id === form.planId)!;
-    const code = `WH-${Date.now().toString(36).toUpperCase().slice(-6)}`;
-    await tenantsApi.create({
-      code,
-      name: form.name,
-      slug: form.slug,
-      status: "trial",
-      taxId: form.taxId,
-      country: form.country,
-      adminName: form.adminName,
-      adminEmail: form.adminEmail,
-      address: form.address,
-      planId: form.planId,
-      planName: plan.name,
-      billingCycle: form.billingCycle,
-      createdAt: new Date().toISOString().slice(0, 10),
-    });
-    setCredentials({
-      code,
-      adminEmail: form.adminEmail,
-      password: `Tmp-${Math.random().toString(36).slice(2, 10)}`,
-    });
-    onSaved?.();
-    toast.success("Mayorista creado", `${form.name} fue registrado correctamente`);
+    setSubmitting(true);
+    try {
+      const result = await tenantsApi.create({
+        slug: form.slug,
+        displayName: form.name,
+        legalName: form.name,
+        taxId: form.taxId,
+        adminEmail: form.adminEmail,
+        adminFullName: form.adminName,
+        planId: form.planId,
+        billingType: form.billingCycle,
+        country: form.country,
+        region: form.region,
+        streetLine1: form.address,
+      });
+      setCredentials({
+        code: result.code,
+        adminEmail: result.adminEmail,
+        password: result.password,
+      });
+      onSaved?.();
+      toast.success("Mayorista creado", `${form.name} fue registrado correctamente`);
+    } catch (e) {
+      toast.error("No se pudo crear el mayorista", e instanceof Error ? e.message : "Inténtalo de nuevo");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -121,7 +141,7 @@ export function CreateTenantDialog({ open, onClose, onSaved }: Props) {
                 Siguiente
               </Button>
             ) : (
-              <Button onClick={submit}>Crear mayorista</Button>
+              <Button onClick={submit} loading={submitting}>Crear mayorista</Button>
             )}
           </>
         )
@@ -173,7 +193,20 @@ export function CreateTenantDialog({ open, onClose, onSaved }: Props) {
                 <Input value={form.address} onChange={(e) => set("address", e.target.value)} placeholder="Av. La Marina 123, Lima" />
               </Field>
               <Field label="País">
-                <Select value={form.country} onChange={(e) => set("country", e.target.value)} options={countryOptions} />
+                <Select
+                  value={form.country}
+                  onChange={(e) => { set("country", e.target.value); set("region", ""); }}
+                  options={countryOptions}
+                />
+              </Field>
+              <Field label="Región">
+                <Select
+                  value={form.region}
+                  onChange={(e) => set("region", e.target.value)}
+                  options={regionOptions}
+                  placeholder="Selecciona una región"
+                  disabled={!regionOptions.length}
+                />
               </Field>
             </div>
           )}

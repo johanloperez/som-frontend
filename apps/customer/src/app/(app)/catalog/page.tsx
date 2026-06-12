@@ -12,7 +12,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { useToast } from "@repo/ui/toast";
 import { useCart } from "@/lib/cart";
 import { productsApi } from "@/lib/api-services";
-import { accentStyles, categoryOptions } from "@/lib/order-status";
+import { accentStyles } from "@/lib/order-status";
 import { useData } from "@/lib/use-api";
 
 const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
@@ -24,6 +24,14 @@ export default function CatalogPage() {
   const { add } = useCart();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
+
+  const categoryOptions = useMemo(
+    () =>
+      Array.from(new Set(products.map((p) => p.category).filter(Boolean)))
+        .sort((a, b) => a.localeCompare(b))
+        .map((c) => ({ value: c, label: c })),
+    [products],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

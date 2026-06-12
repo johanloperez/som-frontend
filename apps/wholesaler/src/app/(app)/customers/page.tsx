@@ -15,20 +15,25 @@ import { Label } from "@repo/ui/label";
 import { PageHeader } from "@repo/ui/page-header";
 import { Select } from "@repo/ui/select";
 import { useToast } from "@repo/ui/toast";
-import { customersApi } from "@/lib/api-services";
-import { countryOptions } from "@/lib/order-status";
+import { customersApi, geographyApi } from "@/lib/api-services";
 import { useData } from "@/lib/use-api";
 import type { WholesaleCustomer } from "@/lib/types";
 
 const money = (n: number) => `$${n.toLocaleString("en-US")}`;
-const empty = { fullName: "", email: "", phone: "", company: "", country: "Perú", region: "", active: true };
+const empty = { fullName: "", email: "", phone: "", company: "", country: "", region: "", active: true };
 
 export default function CustomersPage() {
   const toast = useToast();
   const { data: customers = [], refetch } = useData(() => customersApi.list());
+  const { data: countryOptions = [] } = useData(() => geographyApi.countries());
   const [country, setCountry] = useState("");
   const [dialog, setDialog] = useState<{ open: boolean; editing: WholesaleCustomer | null }>({ open: false, editing: null });
   const [form, setForm] = useState(empty);
+  const formCountryId = countryOptions.find((c) => c.value === form.country)?.id ?? "";
+  const { data: regionOptions = [] } = useData(
+    () => (formCountryId ? geographyApi.regions(formCountryId) : Promise.resolve([])),
+    [formCountryId],
+  );
   const [deleteTarget, setDeleteTarget] = useState<WholesaleCustomer | null>(null);
 
   const filtered = useMemo(() => (country ? customers.filter((c) => c.country === country) : customers), [customers, country]);
@@ -130,8 +135,8 @@ export default function CustomersPage() {
           <Field label="Empresa"><Input value={form.company} onChange={(e) => set("company", e.target.value)} placeholder="Bodega María" /></Field>
           <Field label="Correo"><Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="maria@bodega.com" /></Field>
           <Field label="Teléfono"><Input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+51 987 654 321" /></Field>
-          <Field label="País"><Select value={form.country} onChange={(e) => set("country", e.target.value)} options={countryOptions} /></Field>
-          <Field label="Región"><Input value={form.region} onChange={(e) => set("region", e.target.value)} placeholder="Lima" /></Field>
+          <Field label="País"><Select value={form.country} onChange={(e) => { set("country", e.target.value); set("region", ""); }} options={countryOptions} /></Field>
+          <Field label="Región"><Select value={form.region} onChange={(e) => set("region", e.target.value)} options={regionOptions} placeholder="Selecciona una región" disabled={!regionOptions.length} /></Field>
         </div>
       </Dialog>
 

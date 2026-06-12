@@ -8,9 +8,8 @@ import { Label } from "@repo/ui/label";
 import { Select } from "@repo/ui/select";
 import { Stepper } from "@repo/ui/stepper";
 import { useToast } from "@repo/ui/toast";
-import { customersApi } from "@/lib/api-services";
-import { regionsFor } from "@/lib/geography";
-import { countryOptions } from "@/lib/tenant-status";
+import { customersApi, geographyApi } from "@/lib/api-services";
+import { useData } from "@/lib/use-api";
 import type { Customer } from "@/lib/types";
 
 const STEPS = ["Datos personales", "Identificación", "Dirección", "Confirmar"];
@@ -27,8 +26,8 @@ const empty = {
   email: "",
   username: "",
   company: "",
-  country: "Perú",
-  region: "Lima",
+  country: "",
+  region: "",
   active: true,
 };
 
@@ -36,6 +35,13 @@ export function CustomerDialog({ open, onClose, editing, onSaved }: Props) {
   const toast = useToast();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(empty);
+
+  const { data: countries = [] } = useData(() => geographyApi.countries());
+  const countryId = countries.find((c) => c.value === form.country)?.id ?? "";
+  const { data: regions = [] } = useData(
+    () => (countryId ? geographyApi.regions(countryId) : Promise.resolve([])),
+    [countryId],
+  );
 
   useEffect(() => {
     if (open) {
@@ -48,7 +54,7 @@ export function CustomerDialog({ open, onClose, editing, onSaved }: Props) {
               username: editing.username,
               company: editing.company ?? "",
               country: editing.country,
-              region: editing.region ?? regionsFor(editing.country)[0] ?? "",
+              region: editing.region ?? "",
               active: editing.active,
             }
           : empty,
@@ -104,11 +110,11 @@ export function CustomerDialog({ open, onClose, editing, onSaved }: Props) {
           <Field label="Usuario"><Input value={form.username} onChange={(e) => set("username", e.target.value)} /></Field>
           <Field label="Empresa"><Input value={form.company} onChange={(e) => set("company", e.target.value)} /></Field>
           <Field label="País">
-            <Select value={form.country} options={countryOptions}
-              onChange={(e) => { set("country", e.target.value); set("region", regionsFor(e.target.value)[0] ?? ""); }} />
+            <Select value={form.country} options={countries}
+              onChange={(e) => { set("country", e.target.value); set("region", ""); }} />
           </Field>
           <Field label="Región">
-            <Select value={form.region} options={regionsFor(form.country).map((r) => ({ value: r, label: r }))}
+            <Select value={form.region} options={regions}
               onChange={(e) => set("region", e.target.value)} />
           </Field>
         </div>
@@ -154,11 +160,11 @@ export function CustomerDialog({ open, onClose, editing, onSaved }: Props) {
         {step === 2 && (
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="País">
-              <Select value={form.country} options={countryOptions}
-                onChange={(e) => { set("country", e.target.value); set("region", regionsFor(e.target.value)[0] ?? ""); }} />
+              <Select value={form.country} options={countries}
+                onChange={(e) => { set("country", e.target.value); set("region", ""); }} />
             </Field>
             <Field label="Región">
-              <Select value={form.region} options={regionsFor(form.country).map((r) => ({ value: r, label: r }))}
+              <Select value={form.region} options={regions}
                 onChange={(e) => set("region", e.target.value)} />
             </Field>
           </div>

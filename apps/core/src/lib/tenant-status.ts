@@ -24,13 +24,3 @@ export const tenantStatusTabs: { value: TenantStatus | "all"; label: string }[] 
   { value: "cancelled", label: "Cancelados" },
   { value: "all", label: "Todos" },
 ];
-
-export const countryOptions = [
-  "Perú",
-  "Colombia",
-  "Chile",
-  "Argentina",
-  "México",
-  "Ecuador",
-  "Bolivia",
-].map((c) => ({ value: c, label: c }));

@@ -20,20 +20,6 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (process.env.NEXT_PUBLIC_DEMO_AUTH === "true") {
-        setSession({
-          user: {
-            id: "demo",
-            email: email || "admin@plataforma.com",
-            fullName: "Admin Demo",
-            role: "platform-admin",
-            permissions: [],
-          },
-          accessToken: "demo-token",
-        });
-        router.replace("/dashboard");
-        return;
-      }
       const res = await post<{
         userId: string; email: string; fullName: string; role: string; accessToken: string;
         permissions: Array<{ code: string; scope: string | null }>;

@@ -10,7 +10,8 @@ import { PageHeader } from "@repo/ui/page-header";
 import { Select } from "@repo/ui/select";
 import { Switch } from "@repo/ui/switch";
 import { useToast } from "@repo/ui/toast";
-import { countryOptions } from "@/lib/order-status";
+import { geographyApi } from "@/lib/api-services";
+import { useData } from "@/lib/use-api";
 import { useAuth } from "@/lib/use-auth";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -20,13 +21,21 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 export default function SettingsPage() {
   const toast = useToast();
   const { user } = useAuth();
+  const { data: countryOptions = [] } = useData(() => geographyApi.countries());
 
   const [profile, setProfile] = useState({
-    company: user?.fullName ?? "Distribuidora Andina",
-    email: user?.email ?? "ventas@miempresa.com",
-    phone: "+51 980 100 200",
-    country: "Perú",
+    company: user?.fullName ?? "",
+    email: user?.email ?? "",
+    phone: "",
+    country: "",
+    region: "",
   });
+
+  const countryId = countryOptions.find((c) => c.value === profile.country)?.id ?? "";
+  const { data: regionOptions = [] } = useData(
+    () => (countryId ? geographyApi.regions(countryId) : Promise.resolve([])),
+    [countryId],
+  );
 
   const [prefs, setPrefs] = useState({
     orderAlerts: true,
@@ -58,7 +67,8 @@ export default function SettingsPage() {
               <Field label="Nombre del negocio"><Input value={profile.company} onChange={(e) => setP("company", e.target.value)} /></Field>
               <Field label="Correo"><Input type="email" value={profile.email} onChange={(e) => setP("email", e.target.value)} /></Field>
               <Field label="Teléfono"><Input value={profile.phone} onChange={(e) => setP("phone", e.target.value)} /></Field>
-              <Field label="País"><Select value={profile.country} onChange={(e) => setP("country", e.target.value)} options={countryOptions} /></Field>
+              <Field label="País"><Select value={profile.country} onChange={(e) => { setP("country", e.target.value); setP("region", ""); }} options={countryOptions} /></Field>
+              <Field label="Región"><Select value={profile.region} onChange={(e) => setP("region", e.target.value)} options={regionOptions} placeholder="Selecciona una región" disabled={!regionOptions.length} /></Field>
             </div>
             <div className="flex justify-end">
               <Button onClick={() => toast.success("Perfil actualizado", profile.company)}>Guardar cambios</Button>

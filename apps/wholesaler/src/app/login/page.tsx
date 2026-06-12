@@ -20,20 +20,6 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (process.env.NEXT_PUBLIC_DEMO_AUTH === "true") {
-        setSession({
-          user: {
-            id: "demo",
-            email: email || "ventas@miempresa.com",
-            fullName: "Distribuidora Andina",
-            role: "wholesaler-admin",
-            permissions: [],
-          },
-          accessToken: "demo-token",
-        });
-        router.replace("/dashboard");
-        return;
-      }
       const slug = process.env.NEXT_PUBLIC_TENANT_SLUG;
       const res = await post<{
         userId: string; email: string; fullName: string; role: string; accessToken: string;

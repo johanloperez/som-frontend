@@ -17,7 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { ConfirmDialog } from "@repo/ui/confirm-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/tabs";
 import { useToast } from "@repo/ui/toast";
-import { plansApi, tenantsApi } from "@/lib/api-services";
+import { plansApi, subscriptionApi, tenantsApi } from "@/lib/api-services";
 import { useData, useDataItem } from "@/lib/use-api";
 import { getTenantStatusMeta } from "@/lib/tenant-status";
 import { BillingTab } from "./_tabs/billing-tab";
@@ -28,6 +28,7 @@ export default function TenantDetailPage() {
   const toast = useToast();
   const { data: plans = [] } = useData(() => plansApi.list());
   const { data: tenant, refetch } = useDataItem(() => tenantsApi.get(params.id), params.id);
+  const { data: subscription, refetch: refetchSub } = useDataItem(() => subscriptionApi.get(params.id), params.id);
   const [cancelOpen, setCancelOpen] = useState(false);
 
   if (!tenant) {
@@ -103,41 +104,55 @@ export default function TenantDetailPage() {
                 <CardTitle>Plan activo</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex items-baseline justify-between">
-                  <span className="text-xl font-bold text-foreground">{tenant.planName}</span>
-                  <Badge>{tenant.billingCycle === "monthly" ? "Mensual" : "Anual"}</Badge>
-                </div>
-                <div className="flex flex-wrap gap-2 pt-2">
-                  {plans
-                    .filter((p) => p.id !== tenant.planId)
-                    .map((p) => (
-                      <Button
-                        key={p.id}
-                        variant="outline"
-                        size="sm"
-                        onClick={async () => {
-                          await tenantsApi.update(tenant.id, { planId: p.id, planName: p.name });
-                          refetch();
-                          toast.success("Plan actualizado", `Ahora: ${p.name}`);
-                        }}
-                      >
-                        Cambiar a {p.name}
-                      </Button>
-                    ))}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={async () => {
-                    const next = tenant.billingCycle === "monthly" ? "yearly" : "monthly";
-                    await tenantsApi.update(tenant.id, { billingCycle: next });
-                    refetch();
-                    toast.success("Ciclo actualizado");
-                  }}
-                >
-                  <Calendar className="size-4" />
-                  Cambiar a ciclo {tenant.billingCycle === "monthly" ? "anual" : "mensual"}
-                </Button>
+                {subscription ? (
+                  <>
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-xl font-bold text-foreground">{subscription.planName}</span>
+                      <Badge>{subscription.billingType === "monthly" ? "Mensual" : "Anual"}</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {subscription.billingType === "monthly"
+                        ? `$${subscription.monthlyPrice}/mes`
+                        : `$${subscription.yearlyPrice}/año`}
+                      {subscription.currentPeriodEnd ? ` · renueva ${subscription.currentPeriodEnd}` : ""}
+                    </p>
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {plans
+                        .filter((p) => p.id !== subscription.planId)
+                        .map((p) => (
+                          <Button
+                            key={p.id}
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              await subscriptionApi.changePlan(tenant.id, p.id, subscription.billingType);
+                              refetchSub();
+                              toast.success("Plan actualizado", `Ahora: ${p.name}`);
+                            }}
+                          >
+                            Cambiar a {p.name}
+                          </Button>
+                        ))}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={async () => {
+                        const next = subscription.billingType === "monthly" ? "yearly" : "monthly";
+                        await subscriptionApi.changeBillingType(tenant.id, next);
+                        refetchSub();
+                        toast.success("Ciclo actualizado");
+                      }}
+                    >
+                      <Calendar className="size-4" />
+                      Cambiar a ciclo {subscription.billingType === "monthly" ? "anual" : "mensual"}
+                    </Button>
+                  </>
+                ) : (
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    Este mayorista no tiene una suscripción activa.
+                  </p>
+                )}
               </CardContent>
             </Card>
 
@@ -194,7 +209,7 @@ export default function TenantDetailPage() {
 
         {/* BILLING */}
         <TabsContent value="billing">
-          <BillingTab tenantName={tenant.name} />
+          <BillingTab tenantId={tenant.id} tenantName={tenant.name} />
         </TabsContent>
       </Tabs>
 
@@ -205,8 +220,9 @@ export default function TenantDetailPage() {
         description={`La cuenta de ${tenant.name} pasará a estado cancelado.`}
         confirmLabel="Sí, cancelar"
         onConfirm={async () => {
-          await tenantsApi.update(tenant.id, { status: "cancelled" });
+          await tenantsApi.cancelSubscription(tenant.id);
           refetch();
+          refetchSub();
           toast.success("Suscripción cancelada", tenant.name);
         }}
       />
