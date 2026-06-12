@@ -1,22 +1,32 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { LoadingOverlay } from "@repo/ui/loading-overlay";
+import { ToastProvider } from "@repo/ui/toast";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "Wholesale Platform - Customer",
-  description: "Browse wholesalers, discover products, and manage associations",
+  title: "Tienda Mayorista",
+  description: "Compra al por mayor para tu negocio",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en">
-      <head>
-        <script src="https://accounts.google.com/gsi/client" async defer></script>
-      </head>
-      <body className={`${inter.className} min-h-screen bg-background text-foreground antialiased`}>
-        {children}
+    <html lang="es" className={inter.variable} suppressHydrationWarning>
+      <body>
+        <ToastProvider>
+          {children}
+          <LoadingOverlay />
+        </ToastProvider>
       </body>
     </html>
   );

@@ -1,24 +1,26 @@
 {
   "name": "wholesale-platform",
+  "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "turbo dev",
-    "build": "turbo build",
-    "lint": "turbo lint",
-    "typecheck": "turbo typecheck",
-    "clean": "turbo clean",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "generate:types": "turbo run generate:types",
-    "sync:theme": "copy packages\\ui\\src\\theme.css apps\\wholesaler\\src\\app\\globals.css & copy packages\\ui\\src\\theme.css apps\\core\\src\\app\\globals.css & copy packages\\ui\\src\\theme.css apps\\customer\\src\\app\\globals.css"
-  },
-  "devDependencies": {
-    "turbo": "^2.5.0",
-    "prettier": "^3.5.0",
-    "prettier-plugin-tailwindcss": "^0.6.0"
-  },
-  "packageManager": "npm@11.9.0",
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "check-types": "turbo run check-types",
+    "dev:core": "turbo run dev --filter=core",
+    "dev:wholesaler": "turbo run dev --filter=wholesaler",
+    "dev:customer": "turbo run dev --filter=customer"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "5.8.3"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "npm@11.9.0"
 }

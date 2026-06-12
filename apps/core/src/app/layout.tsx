@@ -1,20 +1,32 @@
 import type { Metadata } from "next";
-import { Inter, Geist } from "next/font/google";
+import { Inter } from "next/font/google";
+import { LoadingOverlay } from "@repo/ui/loading-overlay";
+import { ToastProvider } from "@repo/ui/toast";
 import "./globals.css";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "Wholesale Platform - Core",
-  description: "Admin panel for wholesale platform management",
+  title: "Plataforma · Administración",
+  description: "Portal de administración de la plataforma mayorista",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en" className={geist.variable}>
-      <body className={`${inter.className} min-h-screen bg-background text-foreground antialiased`}>
-        {children}
+    <html lang="es" className={inter.variable} suppressHydrationWarning>
+      <body>
+        <ToastProvider>
+          {children}
+          <LoadingOverlay />
+        </ToastProvider>
       </body>
     </html>
   );

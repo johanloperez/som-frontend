@@ -1,51 +1,113 @@
 "use client";
 
-import { LoginPage } from "@repo/ui";
-import { api } from "@repo/api";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { post, setSession } from "@repo/api";
+import { Button } from "@repo/ui/button";
+import { Input } from "@repo/ui/input";
+import { Label } from "@repo/ui/label";
+import { useToast } from "@repo/ui/toast";
+import { ShieldCheck } from "lucide-react";
 
-const PORTAL_URLS: Record<string, string> = {
-  customer: process.env.NEXT_PUBLIC_CUSTOMER_URL ?? "http://localhost:3002",
-  wholesaler: process.env.NEXT_PUBLIC_WHOLESALER_URL ?? "http://localhost:3001",
-};
+export default function LoginPage() {
+  const router = useRouter();
+  const toast = useToast();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-const CORE_URL = process.env.NEXT_PUBLIC_CORE_URL ?? "http://localhost:3000";
-
-export default function CoreLogin() {
-  const handleLogin = async (email: string, password: string) => {
-    const res = await api.post("/auth/login", { email, password, portal: "core" });
-    const data = res.data as {
-      userId: string; email: string; fullName: string; role: string;
-      permissions: { code: string; scope: string | null }[]; accessToken: string; expiresAt: string;
-      tenantSlug?: string; portal?: string;
-    };
-
-    sessionStorage.setItem("auth_user", JSON.stringify({
-      id: data.userId, email: data.email, fullName: data.fullName,
-      role: data.role, permissions: data.permissions,
-      tenantSlug: data.tenantSlug, portal: data.portal ?? "core",
-    }));
-    if (data.accessToken) sessionStorage.setItem("access_token", data.accessToken);
-
-    if (data.portal && data.portal !== "core") {
-      const baseUrl = PORTAL_URLS[data.portal] ?? CORE_URL;
-      const params = new URLSearchParams();
-      if (data.accessToken) params.set("accessToken", data.accessToken);
-      if (data.tenantSlug) params.set("tenantSlug", data.tenantSlug);
-      params.set("userId", data.userId);
-      params.set("email", data.email);
-      params.set("fullName", data.fullName);
-      params.set("role", data.role);
-      params.set("permissions", JSON.stringify(data.permissions));
-      window.location.href = `${baseUrl}/auth/callback?${params.toString()}`;
-      return;
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      if (process.env.NEXT_PUBLIC_DEMO_AUTH === "true") {
+        setSession({
+          user: {
+            id: "demo",
+            email: email || "admin@plataforma.com",
+            fullName: "Admin Demo",
+            role: "platform-admin",
+            permissions: [],
+          },
+          accessToken: "demo-token",
+        });
+        router.replace("/dashboard");
+        return;
+      }
+      const res = await post<{
+        userId: string; email: string; fullName: string; role: string; accessToken: string;
+        permissions: Array<{ code: string; scope: string | null }>;
+      }>("/auth/login", { email, password });
+      setSession({
+        user: {
+          id: res.userId,
+          email: res.email,
+          fullName: res.fullName,
+          role: res.role,
+          permissions: res.permissions.map((p) => ({ code: p.code, scope: p.scope ?? "" })),
+        },
+        accessToken: res.accessToken,
+      });
+      toast.success("Sesión iniciada", `Bienvenido, ${res.fullName}`);
+      router.replace("/dashboard");
+    } catch {
+      toast.error("No se pudo iniciar sesión", "Verifica tus credenciales");
+    } finally {
+      setLoading(false);
     }
-  };
+  }
 
   return (
-    <LoginPage
-      title="Plataforma Principal"
-      description="Inicie sesión para gestionar todo su negocio"
-      onLogin={handleLogin}
-    />
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-accent px-4">
+      <div className="w-full max-w-md">
+        <div className="mb-6 flex flex-col items-center text-center">
+          <div className="mb-3 flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
+            <ShieldCheck className="size-6" />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Administración
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Accede al portal de la plataforma
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Correo electrónico</Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@plataforma.com"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="password">Contraseña</Label>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+            <Button type="submit" className="w-full" loading={loading}>
+              Iniciar sesión
+            </Button>
+          </form>
+        </div>
+
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          Plataforma Wholesale · Solo personal autorizado
+        </p>
+      </div>
+    </div>
   );
 }
