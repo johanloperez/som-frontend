@@ -14,6 +14,18 @@ import { useData } from "@/lib/use-api";
 
 const STEPS = ["Empresa", "Administrador", "Dirección", "Plan"];
 
+// Turns free text into a URL-safe slug: lowercase, accents stripped, only
+// letters/digits, words joined by single hyphens. Used both for the name-derived
+// suggestion and to normalize a manually typed slug before saving.
+function slugify(value: string): string {
+  // NFD splits accented letters into base + combining mark; keeping only
+  // ASCII drops the marks (and any emoji/symbols) cleanly.
+  const ascii = Array.from(value.toLowerCase().normalize("NFD"))
+    .filter((c) => c.charCodeAt(0) < 128)
+    .join("");
+  return ascii.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -43,6 +55,7 @@ export function CreateTenantDialog({ open, onClose, onSaved }: Props) {
   const toast = useToast();
   const { data: plans = [] } = useData(() => plansApi.list());
   const { data: countryOptions = [] } = useData(() => geographyApi.countries());
+  const { data: tenants = [] } = useData(() => tenantsApi.list());
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [credentials, setCredentials] = useState<Credentials | null>(null);
@@ -80,8 +93,14 @@ export function CreateTenantDialog({ open, onClose, onSaved }: Props) {
     setTimeout(reset, 200);
   }
 
+  // A slug must be unique across tenants; flag a clash before the API rejects it.
+  const normalizedSlug = slugify(form.slug);
+  const slugTaken =
+    normalizedSlug !== "" &&
+    tenants.some((t) => t.slug.toLowerCase() === normalizedSlug);
+
   const canNext =
-    (step === 0 && form.name && form.slug && form.taxId) ||
+    (step === 0 && form.name && form.slug && form.taxId && !slugTaken) ||
     (step === 1 && form.adminName && form.adminEmail) ||
     (step === 2 && form.address && form.country) ||
     step === 3;
@@ -90,7 +109,7 @@ export function CreateTenantDialog({ open, onClose, onSaved }: Props) {
     setSubmitting(true);
     try {
       const result = await tenantsApi.create({
-        slug: form.slug,
+        slug: slugify(form.slug),
         displayName: form.name,
         legalName: form.name,
         taxId: form.taxId,
@@ -162,13 +181,23 @@ export function CreateTenantDialog({ open, onClose, onSaved }: Props) {
                   value={form.name}
                   onChange={(e) => {
                     set("name", e.target.value);
-                    set("slug", e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""));
+                    set("slug", slugify(e.target.value));
                   }}
                   placeholder="Distribuidora Andina"
                 />
               </Field>
               <Field label="Slug">
-                <Input value={form.slug} onChange={(e) => set("slug", e.target.value)} placeholder="distribuidora-andina" />
+                <Input
+                  value={form.slug}
+                  error={slugTaken}
+                  onChange={(e) => set("slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
+                  placeholder="distribuidora-andina"
+                />
+                {slugTaken && (
+                  <p className="mt-1 text-xs text-destructive">
+                    Ese slug ya está en uso por otro mayorista. Elige otro.
+                  </p>
+                )}
               </Field>
               <Field label="ID Fiscal">
                 <Input value={form.taxId} onChange={(e) => set("taxId", e.target.value)} placeholder="20123456789" />

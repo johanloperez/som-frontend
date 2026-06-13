@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { parseApiError, post, setSession } from "@repo/api";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
@@ -9,19 +9,38 @@ import { Label } from "@repo/ui/label";
 import { useToast } from "@repo/ui/toast";
 import { Eye, EyeOff, Store } from "lucide-react";
 
+// Remembers the last wholesaler code on this device so returning users don't
+// have to retype it. Falls back to the build-time slug for single-tenant deploys.
+const CODE_STORAGE_KEY = "wholesaler_code";
+
 export default function LoginPage() {
   const router = useRouter();
   const toast = useToast();
+  const [code, setCode] = useState(process.env.NEXT_PUBLIC_TENANT_SLUG ?? "");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // localStorage isn't available during SSR, so read it after mount to avoid a
+  // hydration mismatch. A saved code overrides the env default.
+  useEffect(() => {
+    const saved = window.localStorage.getItem(CODE_STORAGE_KEY);
+    if (saved) setCode(saved);
+  }, []);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // The wholesaler code identifies the tenant; every API call in the portal
+    // is scoped to it, so we must have one before attempting to log in.
+    const slug = code.trim().toLowerCase();
+    if (!slug) {
+      toast.error("Falta el código de mayorista", "Ingresa tu código de mayorista para continuar.");
+      return;
+    }
     setLoading(true);
     try {
-      const slug = process.env.NEXT_PUBLIC_TENANT_SLUG;
+      window.localStorage.setItem(CODE_STORAGE_KEY, slug);
       // Mobile keyboards often capitalize, autocorrect, or append a trailing
       // space (especially after tapping an autofill suggestion). Normalizing
       // here prevents a correct credential from being rejected as a 401.
@@ -38,6 +57,9 @@ export default function LoginPage() {
           email: res.email,
           fullName: res.fullName,
           role: res.role,
+          // Scope every subsequent request in the portal to the tenant the user
+          // logged into, instead of the build-time env var.
+          tenantSlug: slug,
           permissions: res.permissions.map((p) => ({ code: p.code, scope: p.scope ?? "" })),
         },
         accessToken: res.accessToken,
@@ -69,6 +91,24 @@ export default function LoginPage() {
 
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="code">Código de mayorista</Label>
+              <Input
+                id="code"
+                type="text"
+                inputMode="text"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                required
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="mayorista-000000000"
+              />
+              <p className="text-xs text-muted-foreground">
+                Te lo proporciona el administrador de la plataforma.
+              </p>
+            </div>
             <div className="space-y-1.5">
               <Label htmlFor="email">Correo electrónico</Label>
               <Input

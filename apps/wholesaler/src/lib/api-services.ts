@@ -1,4 +1,4 @@
-import { get, post, put, del, unwrapList } from "@repo/api";
+import { get, post, put, del, getUser, unwrapList } from "@repo/api";
 import type {
   Category, Product, WholesaleCustomer, Order, Seller, DirectoryEntry, Publication,
 } from "./types";
@@ -12,8 +12,10 @@ async function unwrap<T>(fetcher: () => Promise<unknown>): Promise<T[]> {
 }
 
 function tenantPath(path: string) {
-  const slug = process.env.NEXT_PUBLIC_TENANT_SLUG;
-  if (!slug) throw new Error("NEXT_PUBLIC_TENANT_SLUG is required");
+  // The tenant the user logged into (set at login) takes precedence; fall back
+  // to the build-time env var for single-tenant deployments.
+  const slug = getUser()?.tenantSlug ?? process.env.NEXT_PUBLIC_TENANT_SLUG;
+  if (!slug) throw new Error("No hay un mayorista seleccionado. Inicia sesión de nuevo.");
   return `/tenant/${slug}${path}`;
 }
 
