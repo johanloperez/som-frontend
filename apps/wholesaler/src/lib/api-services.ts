@@ -12,11 +12,13 @@ async function unwrap<T>(fetcher: () => Promise<unknown>): Promise<T[]> {
 }
 
 function tenantPath(path: string) {
-  // The tenant the user logged into (set at login) takes precedence; fall back
-  // to the build-time env var for single-tenant deployments.
-  const slug = getUser()?.tenantSlug ?? process.env.NEXT_PUBLIC_TENANT_SLUG;
-  if (!slug) throw new Error("No hay un mayorista seleccionado. Inicia sesión de nuevo.");
-  return `/tenant/${slug}${path}`;
+  // Tenant routes are keyed by the wholesaler *code* (e.g. "mayorista-004136857").
+  // Prefer the code from the session (set at login); fall back to the build-time
+  // env var for single-tenant deployments (whose value is also the code, despite
+  // the legacy NEXT_PUBLIC_TENANT_SLUG name).
+  const code = getUser()?.tenantCode ?? process.env.NEXT_PUBLIC_TENANT_SLUG;
+  if (!code) throw new Error("No hay un mayorista seleccionado. Inicia sesión de nuevo.");
+  return `/tenant/${code}${path}`;
 }
 
 // --- Geography (platform-level, not tenant-scoped) ---

@@ -10,7 +10,8 @@ import { useToast } from "@repo/ui/toast";
 import { Eye, EyeOff, Store } from "lucide-react";
 
 // Remembers the last wholesaler code on this device so returning users don't
-// have to retype it. Falls back to the build-time slug for single-tenant deploys.
+// have to retype it. Falls back to the build-time env var (whose value is the
+// code) for single-tenant deploys.
 const CODE_STORAGE_KEY = "wholesaler_code";
 
 export default function LoginPage() {
@@ -32,22 +33,22 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     // The wholesaler code identifies the tenant; every API call in the portal
-    // is scoped to it, so we must have one before attempting to log in.
-    const slug = code.trim().toLowerCase();
-    if (!slug) {
+    // (including this login) is scoped to it, so we must have one first.
+    const tenantCode = code.trim().toLowerCase();
+    if (!tenantCode) {
       toast.error("Falta el código de mayorista", "Ingresa tu código de mayorista para continuar.");
       return;
     }
     setLoading(true);
     try {
-      window.localStorage.setItem(CODE_STORAGE_KEY, slug);
+      window.localStorage.setItem(CODE_STORAGE_KEY, tenantCode);
       // Mobile keyboards often capitalize, autocorrect, or append a trailing
       // space (especially after tapping an autofill suggestion). Normalizing
       // here prevents a correct credential from being rejected as a 401.
       const res = await post<{
         userId: string; email: string; fullName: string; role: string; accessToken: string;
         permissions: Array<{ code: string; scope: string | null }>;
-      }>(`/tenant/${slug}/auth/login`, {
+      }>(`/tenant/${tenantCode}/auth/login`, {
         email: email.trim().toLowerCase(),
         password: password.trim(),
       });
@@ -59,7 +60,7 @@ export default function LoginPage() {
           role: res.role,
           // Scope every subsequent request in the portal to the tenant the user
           // logged into, instead of the build-time env var.
-          tenantSlug: slug,
+          tenantCode,
           permissions: res.permissions.map((p) => ({ code: p.code, scope: p.scope ?? "" })),
         },
         accessToken: res.accessToken,
