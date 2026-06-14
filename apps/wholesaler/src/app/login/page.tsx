@@ -34,7 +34,8 @@ export default function LoginPage() {
     e.preventDefault();
     // The wholesaler code identifies the tenant; every API call in the portal
     // (including this login) is scoped to it, so we must have one first.
-    const tenantCode = code.trim().toLowerCase();
+    // Codes are case-sensitive (e.g. "WHQH0OOD") — only trim, never change case.
+    const tenantCode = code.trim();
     if (!tenantCode) {
       toast.error("Falta el código de mayorista", "Ingresa tu código de mayorista para continuar.");
       return;
@@ -98,16 +99,16 @@ export default function LoginPage() {
                 id="code"
                 type="text"
                 inputMode="text"
-                autoCapitalize="none"
+                autoCapitalize="characters"
                 autoCorrect="off"
                 spellCheck={false}
                 required
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                placeholder="mayorista-000000000"
+                placeholder="WHQH0OOD"
               />
               <p className="text-xs text-muted-foreground">
-                Te lo proporciona el administrador de la plataforma.
+                Es el código que se te entregó al crear la cuenta.
               </p>
             </div>
             <div className="space-y-1.5">
