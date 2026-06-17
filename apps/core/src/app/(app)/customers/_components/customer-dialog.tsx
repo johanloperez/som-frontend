@@ -13,7 +13,7 @@ import { useData } from "@/lib/use-api";
 import type { Customer } from "@/lib/types";
 import { CredentialsDialog } from "./credentials-dialog";
 
-const STEPS = ["Datos personales", "Identificación", "Dirección", "Confirmar"];
+const STEPS = ["Datos personales", "Dirección", "Confirmar"];
 
 interface Props {
   open: boolean;
@@ -25,11 +25,9 @@ interface Props {
 const empty = {
   fullName: "",
   email: "",
-  username: "",
   company: "",
   country: "",
   region: "",
-  active: true,
 };
 
 export function CustomerDialog({ open, onClose, editing, onSaved }: Props) {
@@ -53,11 +51,9 @@ export function CustomerDialog({ open, onClose, editing, onSaved }: Props) {
           ? {
               fullName: editing.fullName,
               email: editing.email,
-              username: editing.username,
               company: editing.company ?? "",
               country: editing.country,
               region: editing.region ?? "",
-              active: editing.active,
             }
           : empty,
       );
@@ -70,30 +66,36 @@ export function CustomerDialog({ open, onClose, editing, onSaved }: Props) {
 
   const isEdit = !!editing;
 
+  function payload() {
+    return {
+      fullName: form.fullName.trim(),
+      email: form.email.trim(),
+      businessName: form.company.trim() || undefined,
+      country: form.country || undefined,
+      region: form.region || undefined,
+    };
+  }
+
   async function save() {
     if (isEdit) {
-      await customersApi.update(editing!.id, { ...form });
+      await customersApi.update(editing!.id, payload());
       toast.success("Cliente actualizado", form.fullName);
       onSaved?.();
       onClose();
     } else {
-      const res = await customersApi.create({
-        ...form,
-        createdAt: new Date().toISOString().slice(0, 10),
-      });
+      const res = await customersApi.create(payload());
       toast.success("Cliente creado", form.fullName);
       onSaved?.();
       onClose();
       // Surface the generated login credentials so the operator can share them.
-      setCredentials({ email: form.email, password: res.password });
+      setCredentials({ email: form.email.trim(), password: res.password });
     }
   }
 
   const canNext =
     (step === 0 && form.fullName && form.email) ||
-    (step === 1 && form.username) ||
-    (step === 2 && form.country) ||
-    step === 3;
+    (step === 1 && form.country) ||
+    step === 2;
 
   // Edit mode: single flat form, no stepper.
   if (isEdit) {
@@ -113,7 +115,6 @@ export function CustomerDialog({ open, onClose, editing, onSaved }: Props) {
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Nombre completo"><Input value={form.fullName} onChange={(e) => set("fullName", e.target.value)} /></Field>
           <Field label="Correo"><Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} /></Field>
-          <Field label="Usuario"><Input value={form.username} onChange={(e) => set("username", e.target.value)} /></Field>
           <Field label="Empresa"><Input value={form.company} onChange={(e) => set("company", e.target.value)} /></Field>
           <Field label="País">
             <Select value={form.country} options={countries}
@@ -134,14 +135,14 @@ export function CustomerDialog({ open, onClose, editing, onSaved }: Props) {
       open={open}
       onClose={onClose}
       title="Nuevo cliente"
-      description="Registra un cliente minorista en 4 pasos"
+      description="Registra un cliente minorista en 3 pasos"
       size="lg"
       footer={
         <>
           <Button variant="outline" onClick={() => (step === 0 ? onClose() : setStep((s) => s - 1))}>
             {step === 0 ? "Cancelar" : "Atrás"}
           </Button>
-          {step < 3 ? (
+          {step < 2 ? (
             <Button disabled={!canNext} onClick={() => setStep((s) => s + 1)}>Siguiente</Button>
           ) : (
             <Button onClick={save}>Crear cliente</Button>
@@ -161,11 +162,6 @@ export function CustomerDialog({ open, onClose, editing, onSaved }: Props) {
         )}
         {step === 1 && (
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Nombre de usuario"><Input value={form.username} onChange={(e) => set("username", e.target.value)} placeholder="mgonzalez" /></Field>
-          </div>
-        )}
-        {step === 2 && (
-          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="País">
               <Select value={form.country} options={countries}
                 onChange={(e) => { set("country", e.target.value); set("region", ""); }} />
@@ -176,11 +172,10 @@ export function CustomerDialog({ open, onClose, editing, onSaved }: Props) {
             </Field>
           </div>
         )}
-        {step === 3 && (
+        {step === 2 && (
           <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
             <Summary label="Nombre" value={form.fullName} />
             <Summary label="Correo" value={form.email} />
-            <Summary label="Usuario" value={form.username} />
             <Summary label="Empresa" value={form.company || "—"} />
             <Summary label="Ubicación" value={`${form.region}, ${form.country}`} />
           </div>

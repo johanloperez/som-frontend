@@ -46,7 +46,6 @@ export default function CustomersPage() {
           </div>
         ),
       },
-      { accessorKey: "username", header: "Usuario", cell: ({ getValue }) => <span className="font-mono text-xs">{String(getValue())}</span> },
       {
         accessorKey: "active",
         header: "Estado",

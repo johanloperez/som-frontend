@@ -282,19 +282,40 @@ export const geographyApi = {
 };
 
 // --- Customers ---
+// Customers authenticate by email (there is no username). The list endpoint
+// returns the profile joined with its login user (userEmail / userStatus).
 interface ApiCustomer {
-  id: string; fullName: string; email: string; username: string;
-  active: boolean; company?: string; country: string; region?: string; createdAt: string;
+  id: string; fullName: string; email: string;
+  businessName?: string; country?: string; region?: string;
+  createdAt: string; userStatus?: string;
+}
+
+function mapCustomer(c: ApiCustomer): Customer {
+  return {
+    id: c.id, fullName: c.fullName, email: c.email,
+    company: c.businessName ?? "",
+    country: c.country ?? "", region: c.region ?? "",
+    active: (c.userStatus ?? "none") === "active",
+    createdAt: c.createdAt ? c.createdAt.slice(0, 10) : "",
+  };
+}
+
+export interface CustomerPayload {
+  fullName: string;
+  email: string;
+  businessName?: string;
+  country?: string;
+  region?: string;
 }
 
 export const customersApi = {
-  list: () => unwrap<ApiCustomer>(() => get<ApiList<ApiCustomer>>(`${P}/customers`)),
+  list: () => unwrap<ApiCustomer>(() => get<ApiList<ApiCustomer>>(`${P}/customers`)).then(r => r.map(mapCustomer)),
   get: (id: string) => get<Customer>(`${P}/customers/${id}`),
-  // Creating a customer provisions a login user; the backend returns the
-  // generated temporary password so the operator can share it once.
-  create: (data: Omit<Customer, "id">) =>
+  // Creating a customer provisions a login user (email + password); the backend
+  // returns the generated temporary password so the operator can share it once.
+  create: (data: CustomerPayload) =>
     post<{ id: string; ownerUserId: string; password: string }>(`${P}/customers`, data),
-  update: (id: string, data: Partial<Customer>) => put<void>(`${P}/customers/${id}`, data),
+  update: (id: string, data: Partial<CustomerPayload>) => put<void>(`${P}/customers/${id}`, data),
   remove: (id: string) => del<void>(`${P}/customers/${id}`),
   // Generates a new temporary password for the customer's user and returns it
   // (it is only shown once, so the caller must surface it to the operator).

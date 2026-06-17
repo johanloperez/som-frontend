@@ -26,7 +26,6 @@ export interface Customer {
   id: string;
   fullName: string;
   email: string;
-  username: string;
   active: boolean;
   company?: string;
   country: string;
