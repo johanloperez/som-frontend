@@ -54,12 +54,25 @@ export const productsApi = {
   remove: (id: string) => del<void>(tenantPath(`/products/${id}`)),
 };
 
+export interface LinkCode {
+  id: string;
+  code: string;
+  qrToken: string;
+  maxUses: number;
+  expiresAt: string | null;
+}
+
 export const customersApi = {
   list: () => unwrap<WholesaleCustomer>(() => get<ApiList<WholesaleCustomer>>(tenantPath("/customers"))),
   get: (id: string) => get<WholesaleCustomer>(tenantPath(`/customers/${id}`)),
   create: (data: Omit<WholesaleCustomer, "id">) => post<WholesaleCustomer>(tenantPath("/customers"), data),
   update: (id: string, data: Partial<WholesaleCustomer>) => put<void>(tenantPath(`/customers/${id}`), data),
   remove: (id: string) => del<void>(tenantPath(`/customers/${id}`)),
+  // Wholesaler customers don't have a login; they associate their account with
+  // a one-time link code (shareable text/QR). Generated on creation so the
+  // operator can hand it to the customer.
+  createLinkCode: (customerId: string) =>
+    post<LinkCode>(tenantPath(`/customers/${customerId}/link-codes`), { maxUses: 1 }),
 };
 
 export const sellersApi = {

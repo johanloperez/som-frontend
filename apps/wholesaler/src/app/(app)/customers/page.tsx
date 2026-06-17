@@ -18,6 +18,7 @@ import { useToast } from "@repo/ui/toast";
 import { customersApi, geographyApi } from "@/lib/api-services";
 import { useData } from "@/lib/use-api";
 import type { WholesaleCustomer } from "@/lib/types";
+import { LinkCodeDialog } from "./_components/link-code-dialog";
 
 const money = (n: number) => `$${n.toLocaleString("en-US")}`;
 const empty = { fullName: "", email: "", phone: "", company: "", country: "", region: "", active: true };
@@ -35,6 +36,7 @@ export default function CustomersPage() {
     [formCountryId],
   );
   const [deleteTarget, setDeleteTarget] = useState<WholesaleCustomer | null>(null);
+  const [linkCode, setLinkCode] = useState<{ code: string; customerName: string } | null>(null);
 
   const filtered = useMemo(() => (country ? customers.filter((c) => c.country === country) : customers), [customers, country]);
 
@@ -52,12 +54,21 @@ export default function CustomersPage() {
     if (dialog.editing) {
       await customersApi.update(dialog.editing.id, { ...form });
       toast.success("Cliente actualizado", form.fullName);
+      setDialog({ open: false, editing: null });
+      refetch();
     } else {
-      await customersApi.create({ ...form, ordersCount: 0, totalSpent: 0, createdAt: new Date().toISOString().slice(0, 10) });
+      const created = await customersApi.create({ ...form, ordersCount: 0, totalSpent: 0, createdAt: new Date().toISOString().slice(0, 10) });
       toast.success("Cliente creado", form.fullName);
+      setDialog({ open: false, editing: null });
+      refetch();
+      // Generate a one-time link code so the operator can share access with the customer.
+      try {
+        const link = await customersApi.createLinkCode(created.id);
+        setLinkCode({ code: link.code, customerName: form.fullName });
+      } catch (e) {
+        toast.error("Cliente creado, pero no se pudo generar el código de acceso", e instanceof Error ? e.message : "Genéralo manualmente más tarde.");
+      }
     }
-    setDialog({ open: false, editing: null });
-    refetch();
   }
 
   const columns = useMemo<ColumnDef<WholesaleCustomer, unknown>[]>(
@@ -153,6 +164,13 @@ export default function CustomersPage() {
             refetch();
           }
         }}
+      />
+
+      <LinkCodeDialog
+        open={!!linkCode}
+        onClose={() => setLinkCode(null)}
+        customerName={linkCode?.customerName}
+        code={linkCode?.code ?? ""}
       />
     </div>
   );
