@@ -15,6 +15,7 @@ import { customersApi, geographyApi } from "@/lib/api-services";
 import { useData } from "@/lib/use-api";
 import type { Customer } from "@/lib/types";
 import { CustomerDialog } from "./_components/customer-dialog";
+import { CredentialsDialog } from "./_components/credentials-dialog";
 
 export default function CustomersPage() {
   const toast = useToast();
@@ -26,6 +27,7 @@ export default function CustomersPage() {
     editing: null,
   });
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
+  const [resetCreds, setResetCreds] = useState<{ email: string; password: string } | null>(null);
 
   const filtered = useMemo(
     () => (country ? customers.filter((c) => c.country === country) : customers),
@@ -69,7 +71,14 @@ export default function CustomersPage() {
                 }
                 items={[
                   { label: "Editar", icon: <Pencil className="size-4" />, onClick: () => setDialog({ open: true, editing: c }) },
-                  { label: "Restablecer contraseña", icon: <KeyRound className="size-4" />, onClick: () => toast.success("Contraseña restablecida", `Se envió un correo a ${c.email}`) },
+                  { label: "Restablecer contraseña", icon: <KeyRound className="size-4" />, onClick: async () => {
+                    try {
+                      const password = await customersApi.resetPassword(c.id);
+                      setResetCreds({ email: c.email, password });
+                    } catch (e) {
+                      toast.error("No se pudo restablecer la contraseña", e instanceof Error ? e.message : "Inténtalo de nuevo");
+                    }
+                  } },
                   "separator",
                   { label: "Eliminar", icon: <Trash2 className="size-4" />, onClick: () => setDeleteTarget(c), destructive: true },
                 ]}
@@ -114,6 +123,14 @@ export default function CustomersPage() {
         editing={dialog.editing}
         onClose={() => setDialog({ open: false, editing: null })}
         onSaved={refetch}
+      />
+      <CredentialsDialog
+        open={!!resetCreds}
+        onClose={() => setResetCreds(null)}
+        title="Contraseña restablecida"
+        description="Comparte la nueva contraseña con el cliente. No volverá a mostrarse."
+        email={resetCreds?.email}
+        password={resetCreds?.password ?? ""}
       />
       <ConfirmDialog
         open={!!deleteTarget}

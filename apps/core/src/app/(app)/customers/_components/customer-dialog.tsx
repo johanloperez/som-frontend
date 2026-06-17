@@ -11,6 +11,7 @@ import { useToast } from "@repo/ui/toast";
 import { customersApi, geographyApi } from "@/lib/api-services";
 import { useData } from "@/lib/use-api";
 import type { Customer } from "@/lib/types";
+import { CredentialsDialog } from "./credentials-dialog";
 
 const STEPS = ["Datos personales", "Identificación", "Dirección", "Confirmar"];
 
@@ -35,6 +36,7 @@ export function CustomerDialog({ open, onClose, editing, onSaved }: Props) {
   const toast = useToast();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(empty);
+  const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null);
 
   const { data: countries = [] } = useData(() => geographyApi.countries());
   const countryId = countries.find((c) => c.value === form.country)?.id ?? "";
@@ -72,15 +74,19 @@ export function CustomerDialog({ open, onClose, editing, onSaved }: Props) {
     if (isEdit) {
       await customersApi.update(editing!.id, { ...form });
       toast.success("Cliente actualizado", form.fullName);
+      onSaved?.();
+      onClose();
     } else {
-      await customersApi.create({
+      const res = await customersApi.create({
         ...form,
         createdAt: new Date().toISOString().slice(0, 10),
       });
       toast.success("Cliente creado", form.fullName);
+      onSaved?.();
+      onClose();
+      // Surface the generated login credentials so the operator can share them.
+      setCredentials({ email: form.email, password: res.password });
     }
-    onSaved?.();
-    onClose();
   }
 
   const canNext =
@@ -123,6 +129,7 @@ export function CustomerDialog({ open, onClose, editing, onSaved }: Props) {
   }
 
   return (
+    <>
     <Dialog
       open={open}
       onClose={onClose}
@@ -180,6 +187,15 @@ export function CustomerDialog({ open, onClose, editing, onSaved }: Props) {
         )}
       </div>
     </Dialog>
+    <CredentialsDialog
+      open={!!credentials}
+      onClose={() => setCredentials(null)}
+      title="Cliente creado"
+      description="Comparte estas credenciales con el cliente. No volverán a mostrarse."
+      email={credentials?.email}
+      password={credentials?.password ?? ""}
+    />
+    </>
   );
 }
 

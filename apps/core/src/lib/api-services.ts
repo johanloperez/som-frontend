@@ -290,9 +290,18 @@ interface ApiCustomer {
 export const customersApi = {
   list: () => unwrap<ApiCustomer>(() => get<ApiList<ApiCustomer>>(`${P}/customers`)),
   get: (id: string) => get<Customer>(`${P}/customers/${id}`),
-  create: (data: Omit<Customer, "id">) => post<Customer>(`${P}/customers`, data),
+  // Creating a customer provisions a login user; the backend returns the
+  // generated temporary password so the operator can share it once.
+  create: (data: Omit<Customer, "id">) =>
+    post<{ id: string; ownerUserId: string; password: string }>(`${P}/customers`, data),
   update: (id: string, data: Partial<Customer>) => put<void>(`${P}/customers/${id}`, data),
   remove: (id: string) => del<void>(`${P}/customers/${id}`),
+  // Generates a new temporary password for the customer's user and returns it
+  // (it is only shown once, so the caller must surface it to the operator).
+  resetPassword: (id: string) =>
+    post<{ newPassword?: string; password?: string }>(`${P}/customers/${id}/reset-password`).then(
+      (r) => r.newPassword ?? r.password ?? "",
+    ),
 };
 
 // --- Resources ---
