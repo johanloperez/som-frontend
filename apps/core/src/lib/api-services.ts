@@ -122,6 +122,12 @@ export const tenantsApi = {
   list: () => unwrap<ApiTenant>(() => get<ApiList<ApiTenant>>(`${P}/tenants`)).then(r => r.map(mapTenant)),
   get: (id: string) => get<ApiTenant>(`${P}/tenants/${id}`).then(mapTenant),
   create: createTenant,
+  // Generates a new temporary password for the tenant's admin and returns it
+  // (it is only shown once, so the caller must surface it to the operator).
+  resetPassword: (id: string) =>
+    post<{ newPassword?: string; password?: string }>(`${P}/tenants/${id}/reset-password`).then(
+      (r) => r.newPassword ?? r.password ?? "",
+    ),
   update: (id: string, data: Partial<Tenant>) => put<void>(`${P}/tenants/${id}`, data),
   remove: (id: string) => del<void>(`${P}/tenants/${id}`),
   updateStatus: (id: string, status: string) => put<void>(`${P}/tenants/${id}/status`, { status }),
@@ -131,6 +137,29 @@ export const tenantsApi = {
   cancelSubscription: (id: string) => post<void>(`${P}/tenants/${id}/subscription/cancel`),
   updateSubscriptionPlan: (id: string, planId: string) => put<void>(`${P}/tenants/${id}/subscription/plan`, { planId }),
   updateBillingType: (id: string, billingCycle: string) => put<void>(`${P}/tenants/${id}/subscription/billing-type`, { billingCycle }),
+};
+
+// --- Backups (per-tenant backup configuration) ---
+export interface BackupConfig {
+  schedule: string;
+  retentionDays: number;
+  nextScheduledAt?: string;
+  lastBackupAt?: string;
+}
+
+interface ApiBackupConfig {
+  schedule: string; retentionDays: number;
+  nextScheduledAt?: string | null; lastBackupAt?: string | null;
+}
+
+export const backupsApi = {
+  config: (tenantId: string) =>
+    get<ApiBackupConfig>(`${P}/tenants/${tenantId}/backups/config`).then((c): BackupConfig => ({
+      schedule: c.schedule, retentionDays: c.retentionDays,
+      nextScheduledAt: c.nextScheduledAt ?? undefined,
+      lastBackupAt: c.lastBackupAt ?? undefined,
+    })),
+  trigger: (tenantId: string) => post<unknown>(`${P}/tenants/${tenantId}/backups/trigger?type=manual`, {}),
 };
 
 // --- Subscription (current plan for a tenant) ---

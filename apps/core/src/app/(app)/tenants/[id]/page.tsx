@@ -6,8 +6,11 @@ import {
   ArrowLeft,
   Building2,
   Calendar,
+  Check,
+  Copy,
   CreditCard,
   Database,
+  KeyRound,
   MapPin,
   User,
 } from "lucide-react";
@@ -15,10 +18,20 @@ import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { ConfirmDialog } from "@repo/ui/confirm-dialog";
+import { Dialog } from "@repo/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/tabs";
 import { useToast } from "@repo/ui/toast";
-import { plansApi, subscriptionApi, tenantsApi } from "@/lib/api-services";
+import { backupsApi, plansApi, subscriptionApi, tenantsApi } from "@/lib/api-services";
 import { useData, useDataItem } from "@/lib/use-api";
+
+const SCHEDULE_LABELS: Record<string, string> = {
+  daily: "Diaria",
+  weekly: "Semanal",
+  monthly: "Mensual",
+  disabled: "Desactivado",
+};
+const scheduleLabel = (s: string) => SCHEDULE_LABELS[s] ?? s;
+const formatDateTime = (v?: string) => (v ? v.replace("T", " ").slice(0, 16) : "");
 import { getTenantStatusMeta } from "@/lib/tenant-status";
 import { BillingTab } from "./_tabs/billing-tab";
 
@@ -30,6 +43,9 @@ export default function TenantDetailPage() {
   const { data: tenant, refetch } = useDataItem(() => tenantsApi.get(params.id), params.id);
   const { data: subscription, refetch: refetchSub } = useDataItem(() => subscriptionApi.get(params.id), params.id);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [newPassword, setNewPassword] = useState<string | null>(null);
 
   if (!tenant) {
     return (
@@ -88,6 +104,15 @@ export default function TenantDetailPage() {
             <InfoCard icon={User} title="Administrador">
               <Row label="Nombre" value={tenant.adminName} />
               <Row label="Correo" value={tenant.adminEmail} />
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3 w-full"
+                onClick={() => setResetOpen(true)}
+              >
+                <KeyRound className="size-4" />
+                Reiniciar contraseña
+              </Button>
             </InfoCard>
             <InfoCard icon={MapPin} title="Dirección">
               <Row label="Dirección" value={tenant.address} />
@@ -226,6 +251,66 @@ export default function TenantDetailPage() {
           toast.success("Suscripción cancelada", tenant.name);
         }}
       />
+
+      <ConfirmDialog
+        open={resetOpen}
+        onClose={() => !resetting && setResetOpen(false)}
+        title="¿Reiniciar la contraseña del administrador?"
+        description={`Se generará una contraseña temporal nueva para ${tenant.adminEmail}. La contraseña actual dejará de funcionar.`}
+        confirmLabel="Sí, reiniciar"
+        onConfirm={async () => {
+          setResetting(true);
+          try {
+            const pwd = await tenantsApi.resetPassword(tenant.id);
+            setResetOpen(false);
+            setNewPassword(pwd);
+          } catch (e) {
+            toast.error(
+              "No se pudo reiniciar la contraseña",
+              e instanceof Error ? e.message : "Inténtalo de nuevo",
+            );
+          } finally {
+            setResetting(false);
+          }
+        }}
+      />
+
+      <Dialog
+        open={newPassword !== null}
+        onClose={() => setNewPassword(null)}
+        title="Contraseña reiniciada"
+        description="Comparte esta contraseña temporal con el administrador. No volverá a mostrarse."
+        footer={<Button onClick={() => setNewPassword(null)}>Listo</Button>}
+      >
+        {newPassword && <PasswordResult password={newPassword} />}
+      </Dialog>
+    </div>
+  );
+}
+
+function PasswordResult({ password }: { password: string }) {
+  const toast = useToast();
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Contraseña temporal
+        </p>
+        <p className="font-mono text-sm text-foreground">{password}</p>
+      </div>
+      <button
+        onClick={() => {
+          navigator.clipboard?.writeText(password);
+          setCopied(true);
+          toast.success("Copiado", "Contraseña temporal");
+          setTimeout(() => setCopied(false), 2000);
+        }}
+        className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        aria-label="Copiar contraseña"
+      >
+        {copied ? <Check className="size-4 text-success" /> : <Copy className="size-4" />}
+      </button>
     </div>
   );
 }
